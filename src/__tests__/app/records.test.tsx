@@ -47,4 +47,8 @@ test('반려동물이 있으면 자동 선택되고, 기록을 추가하면 목�
   await fireEvent.press(screen.getByLabelText('건강 기록 추가'));
 
   await waitFor(() => expect(screen.getByText('아침에 사료를 잘 먹었다')).toBeTruthy());
+
+  await fireEvent.press(screen.getByLabelText('아침에 사료를 잘 먹었다 삭제'));
+
+  await waitFor(() => expect(screen.getByText('건강 기록이 없어요.')).toBeTruthy());
 });

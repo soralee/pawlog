@@ -36,15 +36,30 @@ export function HealthRecordSection({ db, petId }: HealthRecordSectionProps) {
     await refresh();
   }
 
+  async function handleDelete(id: string) {
+    await repository.remove(id);
+    await refresh();
+  }
+
   return (
     <ThemedView style={styles.container}>
       {records.length === 0 && <ThemedText type="default">건강 기록이 없어요.</ThemedText>}
       {records.map((record) => (
         <ThemedView key={record.id} type="backgroundElement" style={styles.row}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {record.recordedAt}
-          </ThemedText>
-          <ThemedText type="default">{record.note}</ThemedText>
+          <ThemedView style={styles.rowText}>
+            <ThemedText type="small" themeColor="textSecondary">
+              {record.recordedAt}
+            </ThemedText>
+            <ThemedText type="default">{record.note}</ThemedText>
+          </ThemedView>
+          <Pressable
+            accessibilityLabel={`${record.note} 삭제`}
+            onPress={() => handleDelete(record.id)}
+          >
+            <ThemedText type="small" themeColor="textSecondary">
+              삭제
+            </ThemedText>
+          </Pressable>
         </ThemedView>
       ))}
 
@@ -67,8 +82,15 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: Spacing.two,
     borderRadius: Spacing.two,
+    gap: Spacing.half,
+  },
+  rowText: {
+    flex: 1,
     gap: Spacing.half,
   },
   input: {
