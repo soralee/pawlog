@@ -2,4 +2,10 @@ packages:
   - .
 allowBuilds:
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@expo/cli@57.0.25'
+  - '@expo/router-server@57.0.10'
+  - babel-preset-expo@57.0.12
+  - expo@57.0.23
+  - expo-notifications@57.0.19
 nodeLinker: hoisted
