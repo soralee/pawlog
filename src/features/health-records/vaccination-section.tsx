@@ -9,7 +9,7 @@ import {
   type Vaccination,
   type VaccinationDb,
 } from '@/db/repositories/vaccination.repository';
-import { isValidDateString } from '@/utils/date';
+import { isValidDateString, todayDateString } from '@/utils/date';
 
 type VaccinationSectionProps = {
   db: VaccinationDb;
@@ -20,6 +20,8 @@ export function VaccinationSection({ db, petId }: VaccinationSectionProps) {
   const repository = useMemo(() => createVaccinationRepository(db), [db]);
   const [records, setRecords] = useState<Vaccination[]>([]);
   const [vaccineName, setVaccineName] = useState('');
+  const [vaccinatedAt, setVaccinatedAt] = useState(todayDateString());
+  const [vaccinatedAtError, setVaccinatedAtError] = useState('');
   const [nextDueAt, setNextDueAt] = useState('');
   const [nextDueAtError, setNextDueAtError] = useState('');
 
@@ -34,18 +36,24 @@ export function VaccinationSection({ db, petId }: VaccinationSectionProps) {
 
   async function handleAdd() {
     if (!vaccineName.trim()) return;
+    if (!isValidDateString(vaccinatedAt.trim())) {
+      setVaccinatedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
     if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
       setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
+    setVaccinatedAtError('');
     setNextDueAtError('');
     await repository.create({
       petId,
       vaccineName,
-      vaccinatedAt: new Date().toISOString().slice(0, 10),
+      vaccinatedAt: vaccinatedAt.trim(),
       nextDueAt: nextDueAt.trim() || null,
     });
     setVaccineName('');
+    setVaccinatedAt(todayDateString());
     setNextDueAt('');
     await refresh();
   }
@@ -85,6 +93,21 @@ export function VaccinationSection({ db, petId }: VaccinationSectionProps) {
         onChangeText={setVaccineName}
         style={styles.input}
       />
+      <TextInput
+        accessibilityLabel="접종일"
+        placeholder="접종일 (YYYY-MM-DD)"
+        value={vaccinatedAt}
+        onChangeText={(text) => {
+          setVaccinatedAt(text);
+          setVaccinatedAtError('');
+        }}
+        style={styles.input}
+      />
+      {vaccinatedAtError !== '' && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {vaccinatedAtError}
+        </ThemedText>
+      )}
       <TextInput
         accessibilityLabel="다음 접종 예정일"
         placeholder="다음 접종 예정일 (YYYY-MM-DD, 선택)"

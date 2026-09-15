@@ -9,7 +9,7 @@ import {
   type Checkup,
   type CheckupDb,
 } from '@/db/repositories/checkup.repository';
-import { isValidDateString } from '@/utils/date';
+import { isValidDateString, todayDateString } from '@/utils/date';
 
 type CheckupSectionProps = {
   db: CheckupDb;
@@ -20,6 +20,8 @@ export function CheckupSection({ db, petId }: CheckupSectionProps) {
   const repository = useMemo(() => createCheckupRepository(db), [db]);
   const [records, setRecords] = useState<Checkup[]>([]);
   const [checkupType, setCheckupType] = useState('');
+  const [checkedAt, setCheckedAt] = useState(todayDateString());
+  const [checkedAtError, setCheckedAtError] = useState('');
   const [nextDueAt, setNextDueAt] = useState('');
   const [nextDueAtError, setNextDueAtError] = useState('');
 
@@ -34,18 +36,24 @@ export function CheckupSection({ db, petId }: CheckupSectionProps) {
 
   async function handleAdd() {
     if (!checkupType.trim()) return;
+    if (!isValidDateString(checkedAt.trim())) {
+      setCheckedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
     if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
       setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
+    setCheckedAtError('');
     setNextDueAtError('');
     await repository.create({
       petId,
       checkupType,
-      checkedAt: new Date().toISOString().slice(0, 10),
+      checkedAt: checkedAt.trim(),
       nextDueAt: nextDueAt.trim() || null,
     });
     setCheckupType('');
+    setCheckedAt(todayDateString());
     setNextDueAt('');
     await refresh();
   }
@@ -85,6 +93,21 @@ export function CheckupSection({ db, petId }: CheckupSectionProps) {
         onChangeText={setCheckupType}
         style={styles.input}
       />
+      <TextInput
+        accessibilityLabel="검진일"
+        placeholder="검진일 (YYYY-MM-DD)"
+        value={checkedAt}
+        onChangeText={(text) => {
+          setCheckedAt(text);
+          setCheckedAtError('');
+        }}
+        style={styles.input}
+      />
+      {checkedAtError !== '' && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {checkedAtError}
+        </ThemedText>
+      )}
       <TextInput
         accessibilityLabel="다음 검진 예정일"
         placeholder="다음 검진 예정일 (YYYY-MM-DD, 선택)"

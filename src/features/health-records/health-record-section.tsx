@@ -9,6 +9,7 @@ import {
   type HealthRecord,
   type HealthRecordDb,
 } from '@/db/repositories/health-record.repository';
+import { isValidDateString, todayDateString } from '@/utils/date';
 
 type HealthRecordSectionProps = {
   db: HealthRecordDb;
@@ -19,6 +20,8 @@ export function HealthRecordSection({ db, petId }: HealthRecordSectionProps) {
   const repository = useMemo(() => createHealthRecordRepository(db), [db]);
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [note, setNote] = useState('');
+  const [recordedAt, setRecordedAt] = useState(todayDateString());
+  const [recordedAtError, setRecordedAtError] = useState('');
 
   const refresh = useCallback(async () => {
     setRecords(await repository.listByPet(petId));
@@ -31,8 +34,14 @@ export function HealthRecordSection({ db, petId }: HealthRecordSectionProps) {
 
   async function handleAdd() {
     if (!note.trim()) return;
-    await repository.create({ petId, recordedAt: new Date().toISOString().slice(0, 10), note });
+    if (!isValidDateString(recordedAt.trim())) {
+      setRecordedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
+    setRecordedAtError('');
+    await repository.create({ petId, recordedAt: recordedAt.trim(), note });
     setNote('');
+    setRecordedAt(todayDateString());
     await refresh();
   }
 
@@ -70,6 +79,21 @@ export function HealthRecordSection({ db, petId }: HealthRecordSectionProps) {
         onChangeText={setNote}
         style={styles.input}
       />
+      <TextInput
+        accessibilityLabel="기록 날짜"
+        placeholder="기록 날짜 (YYYY-MM-DD)"
+        value={recordedAt}
+        onChangeText={(text) => {
+          setRecordedAt(text);
+          setRecordedAtError('');
+        }}
+        style={styles.input}
+      />
+      {recordedAtError !== '' && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {recordedAtError}
+        </ThemedText>
+      )}
       <Pressable accessibilityLabel="건강 기록 추가" onPress={handleAdd} style={styles.addButton}>
         <ThemedText type="smallBold">추가</ThemedText>
       </Pressable>

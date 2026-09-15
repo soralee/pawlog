@@ -7,6 +7,7 @@ import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/t
 import RecordsScreen from '@/app/records';
 import { createPetRepository, type PetDb } from '@/db/repositories/pet.repository';
 import { useAppStore } from '@/stores/app.store';
+import { todayDateString } from '@/utils/date';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -46,11 +47,33 @@ test('반려동물이 있으면 자동 선택되고, 기록을 추가하면 목�
   await fireEvent.changeText(screen.getByLabelText('건강 기록 메모'), '아침에 사료를 잘 먹었다');
   await fireEvent.press(screen.getByLabelText('건강 기록 추가'));
 
+  expect(screen.getByLabelText('기록 날짜').props.value).toBe(todayDateString());
+
   await waitFor(() => expect(screen.getByText('아침에 사료를 잘 먹었다')).toBeTruthy());
 
   await fireEvent.press(screen.getByLabelText('아침에 사료를 잘 먹었다 삭제'));
 
   await waitFor(() => expect(screen.getByText('건강 기록이 없어요.')).toBeTruthy());
+});
+
+test('기록 날짜는 오늘 날짜가 기본값이지만 자유롭게 바꿀 수 있다', async () => {
+  useAppStore.setState({ selectedPetId: null });
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  await petRepository.createPet({
+    name: '뭉치',
+    birthDate: '2019-03-01',
+    species: 'dog',
+    gender: 'male',
+  });
+
+  await render(<RecordsScreen />);
+  await screen.findByText('건강 기록이 없어요.');
+
+  await fireEvent.changeText(screen.getByLabelText('건강 기록 메모'), '건강검진 다녀옴');
+  await fireEvent.changeText(screen.getByLabelText('기록 날짜'), '2026-01-05');
+  await fireEvent.press(screen.getByLabelText('건강 기록 추가'));
+
+  await waitFor(() => expect(screen.getByText('2026-01-05')).toBeTruthy());
 });
 
 test('예방접종의 다음 예정일에 존재하지 않는 날짜를 넣으면 저장되지 않는다', async () => {

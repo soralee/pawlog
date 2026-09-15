@@ -9,6 +9,7 @@ import {
   type WeightRecord,
   type WeightRecordDb,
 } from '@/db/repositories/weight-record.repository';
+import { isValidDateString, todayDateString } from '@/utils/date';
 
 type WeightRecordSectionProps = {
   db: WeightRecordDb;
@@ -19,6 +20,8 @@ export function WeightRecordSection({ db, petId }: WeightRecordSectionProps) {
   const repository = useMemo(() => createWeightRecordRepository(db), [db]);
   const [records, setRecords] = useState<WeightRecord[]>([]);
   const [weightKg, setWeightKg] = useState('');
+  const [measuredAt, setMeasuredAt] = useState(todayDateString());
+  const [measuredAtError, setMeasuredAtError] = useState('');
 
   const refresh = useCallback(async () => {
     setRecords(await repository.listByPet(petId));
@@ -32,12 +35,18 @@ export function WeightRecordSection({ db, petId }: WeightRecordSectionProps) {
   async function handleAdd() {
     const parsed = Number(weightKg);
     if (!weightKg.trim() || Number.isNaN(parsed)) return;
+    if (!isValidDateString(measuredAt.trim())) {
+      setMeasuredAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
+    setMeasuredAtError('');
     await repository.create({
       petId,
-      measuredAt: new Date().toISOString().slice(0, 10),
+      measuredAt: measuredAt.trim(),
       weightKg: parsed,
     });
     setWeightKg('');
+    setMeasuredAt(todayDateString());
     await refresh();
   }
 
@@ -76,6 +85,21 @@ export function WeightRecordSection({ db, petId }: WeightRecordSectionProps) {
         keyboardType="decimal-pad"
         style={styles.input}
       />
+      <TextInput
+        accessibilityLabel="측정일"
+        placeholder="측정일 (YYYY-MM-DD)"
+        value={measuredAt}
+        onChangeText={(text) => {
+          setMeasuredAt(text);
+          setMeasuredAtError('');
+        }}
+        style={styles.input}
+      />
+      {measuredAtError !== '' && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {measuredAtError}
+        </ThemedText>
+      )}
       <Pressable accessibilityLabel="체중 추가" onPress={handleAdd} style={styles.addButton}>
         <ThemedText type="smallBold">추가</ThemedText>
       </Pressable>
