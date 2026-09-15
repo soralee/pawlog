@@ -9,6 +9,7 @@ import {
   type Checkup,
   type CheckupDb,
 } from '@/db/repositories/checkup.repository';
+import { isValidDateString } from '@/utils/date';
 
 type CheckupSectionProps = {
   db: CheckupDb;
@@ -20,6 +21,7 @@ export function CheckupSection({ db, petId }: CheckupSectionProps) {
   const [records, setRecords] = useState<Checkup[]>([]);
   const [checkupType, setCheckupType] = useState('');
   const [nextDueAt, setNextDueAt] = useState('');
+  const [nextDueAtError, setNextDueAtError] = useState('');
 
   const refresh = useCallback(async () => {
     setRecords(await repository.listByPet(petId));
@@ -32,6 +34,11 @@ export function CheckupSection({ db, petId }: CheckupSectionProps) {
 
   async function handleAdd() {
     if (!checkupType.trim()) return;
+    if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
+      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
+    setNextDueAtError('');
     await repository.create({
       petId,
       checkupType,
@@ -82,9 +89,17 @@ export function CheckupSection({ db, petId }: CheckupSectionProps) {
         accessibilityLabel="다음 검진 예정일"
         placeholder="다음 검진 예정일 (YYYY-MM-DD, 선택)"
         value={nextDueAt}
-        onChangeText={setNextDueAt}
+        onChangeText={(text) => {
+          setNextDueAt(text);
+          setNextDueAtError('');
+        }}
         style={styles.input}
       />
+      {nextDueAtError !== '' && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {nextDueAtError}
+        </ThemedText>
+      )}
       <Pressable accessibilityLabel="건강검진 추가" onPress={handleAdd} style={styles.addButton}>
         <ThemedText type="smallBold">추가</ThemedText>
       </Pressable>

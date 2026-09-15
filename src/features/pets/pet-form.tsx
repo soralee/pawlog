@@ -7,10 +7,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import type { CreatePetInput, Gender, Species } from '@/db/repositories/pet.repository';
+import { isValidDateString } from '@/utils/date';
 
 const petFormSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요'),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD 형식으로 입력해주세요'),
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD 형식으로 입력해주세요')
+    .refine(isValidDateString, '실제로 존재하는 날짜를 입력해주세요'),
   species: z.enum(['dog', 'cat']),
   gender: z.enum(['male', 'female']),
 });

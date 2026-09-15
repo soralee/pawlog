@@ -52,3 +52,29 @@ test('반려동물이 있으면 자동 선택되고, 기록을 추가하면 목�
 
   await waitFor(() => expect(screen.getByText('건강 기록이 없어요.')).toBeTruthy());
 });
+
+test('예방접종의 다음 예정일에 존재하지 않는 날짜를 넣으면 저장되지 않는다', async () => {
+  useAppStore.setState({ selectedPetId: null });
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  await petRepository.createPet({
+    name: '나비',
+    birthDate: '2020-01-01',
+    species: 'cat',
+    gender: 'female',
+  });
+
+  await render(<RecordsScreen />);
+  await fireEvent.press(await screen.findByLabelText('예방접종'));
+
+  await fireEvent.changeText(screen.getByLabelText('백신 이름'), '광견병');
+  await fireEvent.changeText(screen.getByLabelText('다음 접종 예정일'), '2026-13-40');
+  await fireEvent.press(screen.getByLabelText('예방접종 추가'));
+
+  expect(await screen.findByText('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요')).toBeTruthy();
+  expect(screen.queryByText('광견병')).toBeNull();
+
+  await fireEvent.changeText(screen.getByLabelText('다음 접종 예정일'), '2027-01-15');
+  await fireEvent.press(screen.getByLabelText('예방접종 추가'));
+
+  await waitFor(() => expect(screen.getByText('광견병')).toBeTruthy());
+});

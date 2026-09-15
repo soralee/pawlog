@@ -9,6 +9,7 @@ import {
   type Vaccination,
   type VaccinationDb,
 } from '@/db/repositories/vaccination.repository';
+import { isValidDateString } from '@/utils/date';
 
 type VaccinationSectionProps = {
   db: VaccinationDb;
@@ -20,6 +21,7 @@ export function VaccinationSection({ db, petId }: VaccinationSectionProps) {
   const [records, setRecords] = useState<Vaccination[]>([]);
   const [vaccineName, setVaccineName] = useState('');
   const [nextDueAt, setNextDueAt] = useState('');
+  const [nextDueAtError, setNextDueAtError] = useState('');
 
   const refresh = useCallback(async () => {
     setRecords(await repository.listByPet(petId));
@@ -32,6 +34,11 @@ export function VaccinationSection({ db, petId }: VaccinationSectionProps) {
 
   async function handleAdd() {
     if (!vaccineName.trim()) return;
+    if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
+      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
+    setNextDueAtError('');
     await repository.create({
       petId,
       vaccineName,
@@ -82,9 +89,17 @@ export function VaccinationSection({ db, petId }: VaccinationSectionProps) {
         accessibilityLabel="다음 접종 예정일"
         placeholder="다음 접종 예정일 (YYYY-MM-DD, 선택)"
         value={nextDueAt}
-        onChangeText={setNextDueAt}
+        onChangeText={(text) => {
+          setNextDueAt(text);
+          setNextDueAtError('');
+        }}
         style={styles.input}
       />
+      {nextDueAtError !== '' && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {nextDueAtError}
+        </ThemedText>
+      )}
       <Pressable accessibilityLabel="예방접종 추가" onPress={handleAdd} style={styles.addButton}>
         <ThemedText type="smallBold">추가</ThemedText>
       </Pressable>
