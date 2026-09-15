@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "forge@forge": true,
+    "expo@claude-plugins-official": true
+  }
+}
