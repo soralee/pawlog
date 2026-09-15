@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 // (매번 새로 만들면 등록 직후 재렌더 때 데이터가 든 db가 아니라 빈 db를 보게 된다).
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
 
-import PetsScreen from '@/app/pets';
+import PetsScreen from '@/app/(tabs)/pets';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({

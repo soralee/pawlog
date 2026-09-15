@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 // 렌더마다 같은 db 인스턴스를 돌려주도록 첫 호출 때 한 번만 만든다 (pets.test.tsx와 동일한 이유).
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
 
-import RecordsScreen from '@/app/records';
+import RecordsScreen from '@/app/(tabs)/records';
 import { createPetRepository, type PetDb } from '@/db/repositories/pet.repository';
 import { useAppStore } from '@/stores/app.store';
 import { todayDateString } from '@/utils/date';
