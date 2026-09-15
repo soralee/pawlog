@@ -1,21 +1,15 @@
-import * as SQLite from 'expo-sqlite';
+import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_NAME = 'pawlog.db';
+import { migrations } from './migrations';
 
-let dbInstance: SQLite.SQLiteDatabase | null = null;
-
-/** 앱 전체에서 공유하는 단일 SQLite 커넥션을 반환한다. */
-export function getDatabase(): SQLite.SQLiteDatabase {
-  if (!dbInstance) {
-    dbInstance = SQLite.openDatabaseSync(DATABASE_NAME);
-  }
-  return dbInstance;
-}
+export const DATABASE_NAME = 'pawlog.db';
 
 /**
- * 마이그레이션 실행 지점. 아직 테이블 CREATE는 없다 — 첫 기능(Pet 등록)
- * 작업에서 `migrations/`에 첫 마이그레이션을 추가하며 연다.
+ * `<SQLiteProvider onInit={onInit}>`로 앱 루트에서 넘긴다 — 화면이 렌더되기 전에
+ * 순서대로 마이그레이션을 실행한다. 전부 `CREATE TABLE IF NOT EXISTS`라 안전하다.
  */
-export function onInit(): void {
-  getDatabase();
+export async function onInit(db: SQLiteDatabase): Promise<void> {
+  for (const migration of migrations) {
+    await db.execAsync(migration);
+  }
 }
