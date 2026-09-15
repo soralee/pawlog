@@ -84,6 +84,13 @@ export function createVaccinationRepository(db: VaccinationDb) {
     return record;
   }
 
+  async function get(id: string): Promise<Vaccination | null> {
+    const row = await db.getFirstAsync<VaccinationRow>('SELECT * FROM vaccinations WHERE id = ?', [
+      id,
+    ]);
+    return row ? toVaccination(row) : null;
+  }
+
   async function listByPet(petId: string): Promise<Vaccination[]> {
     const rows = await db.getAllAsync<VaccinationRow>(
       'SELECT * FROM vaccinations WHERE pet_id = ? ORDER BY vaccinated_at DESC',
@@ -96,13 +103,10 @@ export function createVaccinationRepository(db: VaccinationDb) {
     id: string,
     input: Partial<Omit<CreateVaccinationInput, 'petId'>>,
   ): Promise<Vaccination | null> {
-    const existing = await db.getFirstAsync<VaccinationRow>(
-      'SELECT * FROM vaccinations WHERE id = ?',
-      [id],
-    );
+    const existing = await get(id);
     if (!existing) return null;
     const updated: Vaccination = {
-      ...toVaccination(existing),
+      ...existing,
       ...input,
       updatedAt: new Date().toISOString(),
     };
@@ -125,5 +129,5 @@ export function createVaccinationRepository(db: VaccinationDb) {
     await db.runAsync('DELETE FROM vaccinations WHERE id = ?', [id]);
   }
 
-  return { create, listByPet, update, remove };
+  return { create, get, listByPet, update, remove };
 }

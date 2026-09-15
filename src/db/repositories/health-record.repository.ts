@@ -52,6 +52,14 @@ export function createHealthRecordRepository(db: HealthRecordDb) {
     return record;
   }
 
+  async function get(id: string): Promise<HealthRecord | null> {
+    const row = await db.getFirstAsync<HealthRecordRow>(
+      'SELECT * FROM health_records WHERE id = ?',
+      [id],
+    );
+    return row ? toHealthRecord(row) : null;
+  }
+
   async function listByPet(petId: string): Promise<HealthRecord[]> {
     const rows = await db.getAllAsync<HealthRecordRow>(
       'SELECT * FROM health_records WHERE pet_id = ? ORDER BY recorded_at DESC',
@@ -64,13 +72,10 @@ export function createHealthRecordRepository(db: HealthRecordDb) {
     id: string,
     input: Partial<Pick<CreateHealthRecordInput, 'recordedAt' | 'note'>>,
   ): Promise<HealthRecord | null> {
-    const existing = await db.getFirstAsync<HealthRecordRow>(
-      'SELECT * FROM health_records WHERE id = ?',
-      [id],
-    );
+    const existing = await get(id);
     if (!existing) return null;
     const updated: HealthRecord = {
-      ...toHealthRecord(existing),
+      ...existing,
       ...input,
       updatedAt: new Date().toISOString(),
     };
@@ -85,5 +90,5 @@ export function createHealthRecordRepository(db: HealthRecordDb) {
     await db.runAsync('DELETE FROM health_records WHERE id = ?', [id]);
   }
 
-  return { create, listByPet, update, remove };
+  return { create, get, listByPet, update, remove };
 }

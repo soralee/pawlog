@@ -84,6 +84,11 @@ export function createCheckupRepository(db: CheckupDb) {
     return record;
   }
 
+  async function get(id: string): Promise<Checkup | null> {
+    const row = await db.getFirstAsync<CheckupRow>('SELECT * FROM checkups WHERE id = ?', [id]);
+    return row ? toCheckup(row) : null;
+  }
+
   async function listByPet(petId: string): Promise<Checkup[]> {
     const rows = await db.getAllAsync<CheckupRow>(
       'SELECT * FROM checkups WHERE pet_id = ? ORDER BY checked_at DESC',
@@ -96,12 +101,10 @@ export function createCheckupRepository(db: CheckupDb) {
     id: string,
     input: Partial<Omit<CreateCheckupInput, 'petId'>>,
   ): Promise<Checkup | null> {
-    const existing = await db.getFirstAsync<CheckupRow>('SELECT * FROM checkups WHERE id = ?', [
-      id,
-    ]);
+    const existing = await get(id);
     if (!existing) return null;
     const updated: Checkup = {
-      ...toCheckup(existing),
+      ...existing,
       ...input,
       updatedAt: new Date().toISOString(),
     };
@@ -124,5 +127,5 @@ export function createCheckupRepository(db: CheckupDb) {
     await db.runAsync('DELETE FROM checkups WHERE id = ?', [id]);
   }
 
-  return { create, listByPet, update, remove };
+  return { create, get, listByPet, update, remove };
 }

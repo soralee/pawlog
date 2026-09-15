@@ -36,3 +36,14 @@ test('등록 후 petId로 목록 조회하면 최신순으로 나오고, 수정/
   await repo.remove(second.id);
   expect(await repo.listByPet('pet-1')).toHaveLength(1);
 });
+
+test('get으로 id 단건 조회할 수 있다', async () => {
+  const repo = setup();
+  const created = await repo.create({
+    petId: 'pet-1',
+    checkupType: '종합검진',
+    checkedAt: '2026-09-01',
+  });
+  expect(await repo.get(created.id)).toEqual(created);
+  expect(await repo.get('없는-id')).toBeNull();
+});

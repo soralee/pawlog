@@ -31,3 +31,14 @@ test('선택 필드를 생략하면 null로 채워지고, 수정/삭제가 동�
   await repo.remove(created.id);
   expect(await repo.listByPet('pet-1')).toEqual([]);
 });
+
+test('get으로 id 단건 조회할 수 있다', async () => {
+  const repo = setup();
+  const created = await repo.create({
+    petId: 'pet-1',
+    vaccineName: '종합백신',
+    vaccinatedAt: '2026-09-01',
+  });
+  expect(await repo.get(created.id)).toEqual(created);
+  expect(await repo.get('없는-id')).toBeNull();
+});

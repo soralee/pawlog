@@ -72,6 +72,14 @@ export function createWeightRecordRepository(db: WeightRecordDb) {
     return record;
   }
 
+  async function get(id: string): Promise<WeightRecord | null> {
+    const row = await db.getFirstAsync<WeightRecordRow>(
+      'SELECT * FROM weight_records WHERE id = ?',
+      [id],
+    );
+    return row ? toWeightRecord(row) : null;
+  }
+
   async function listByPet(petId: string): Promise<WeightRecord[]> {
     const rows = await db.getAllAsync<WeightRecordRow>(
       'SELECT * FROM weight_records WHERE pet_id = ? ORDER BY measured_at DESC',
@@ -84,13 +92,10 @@ export function createWeightRecordRepository(db: WeightRecordDb) {
     id: string,
     input: Partial<Omit<CreateWeightRecordInput, 'petId'>>,
   ): Promise<WeightRecord | null> {
-    const existing = await db.getFirstAsync<WeightRecordRow>(
-      'SELECT * FROM weight_records WHERE id = ?',
-      [id],
-    );
+    const existing = await get(id);
     if (!existing) return null;
     const updated: WeightRecord = {
-      ...toWeightRecord(existing),
+      ...existing,
       ...input,
       updatedAt: new Date().toISOString(),
     };
@@ -105,5 +110,5 @@ export function createWeightRecordRepository(db: WeightRecordDb) {
     await db.runAsync('DELETE FROM weight_records WHERE id = ?', [id]);
   }
 
-  return { create, listByPet, update, remove };
+  return { create, get, listByPet, update, remove };
 }
