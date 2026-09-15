@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import HomeScreen from './index';
+import HomeScreen from '@/app/index';
 
 test('renders the home screen title', async () => {
   await render(<HomeScreen />);
