@@ -29,7 +29,7 @@ export function HealthRecordSection({ db, petId }: HealthRecordSectionProps) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- SQLite(외부 시스템) 동기화용 마운트 시 fetch
-    refresh();
+    void refresh();
   }, [refresh]);
 
   async function handleAdd() {

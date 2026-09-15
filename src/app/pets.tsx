@@ -27,7 +27,7 @@ export default function PetsScreen() {
     // SQLite(외부 시스템)에서 목록을 읽어와 동기화하는 마운트 시점 fetch다 — 이 규칙이
     // 막으려는 "props/상태를 복제하는 setState"가 아니므로 예외 처리한다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    refresh();
+    void refresh();
   }, [refresh]);
 
   async function handleCreate(input: CreatePetInput) {
