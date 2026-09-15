@@ -45,7 +45,7 @@ export default function PetsScreen() {
           keyExtractor={(pet) => pet.id}
           ListEmptyComponent={<ThemedText type="default">등록된 반려동물이 없어요.</ThemedText>}
           renderItem={({ item }) => (
-            <ThemedView type="backgroundElement" style={styles.petRow}>
+            <ThemedView type="surface" style={styles.petRow}>
               <ThemedText type="default">{item.name}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 {formatAge(new Date(item.birthDate))}
@@ -66,12 +66,12 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
   },
   petRow: {
-    padding: Spacing.two,
-    borderRadius: Spacing.two,
-    marginBottom: Spacing.two,
+    padding: Spacing.xs,
+    borderRadius: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
 });

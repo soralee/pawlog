@@ -38,12 +38,12 @@ export function RecordTypeTabs({ value, onChange }: RecordTypeTabsProps) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    gap: Spacing.one,
+    gap: Spacing.xxs,
   },
   button: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.two,
-    borderRadius: Spacing.three,
+    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    borderRadius: Spacing.md,
     borderWidth: 1,
     borderColor: '#ccc',
   },

@@ -54,7 +54,7 @@ export function HealthRecordSection({ db, petId }: HealthRecordSectionProps) {
     <ThemedView style={styles.container}>
       {records.length === 0 && <ThemedText type="default">건강 기록이 없어요.</ThemedText>}
       {records.map((record) => (
-        <ThemedView key={record.id} type="backgroundElement" style={styles.row}>
+        <ThemedView key={record.id} type="surface" style={styles.row}>
           <ThemedView style={styles.rowText}>
             <ThemedText type="small" themeColor="textSecondary">
               {record.recordedAt}
@@ -103,30 +103,30 @@ export function HealthRecordSection({ db, petId }: HealthRecordSectionProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.two,
+    gap: Spacing.xs,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.two,
-    borderRadius: Spacing.two,
-    gap: Spacing.half,
+    padding: Spacing.xs,
+    borderRadius: Spacing.xs,
+    gap: Spacing.xxs,
   },
   rowText: {
     flex: 1,
-    gap: Spacing.half,
+    gap: Spacing.xxs,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: Spacing.one,
-    padding: Spacing.two,
+    borderRadius: Spacing.xxs,
+    padding: Spacing.xs,
   },
   addButton: {
     alignItems: 'center',
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.xs,
     backgroundColor: '#3c87f7',
   },
 });

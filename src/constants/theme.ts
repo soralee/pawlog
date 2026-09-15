@@ -1,27 +1,41 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Pawlog 디자인 토큰. `plan/design-guide.md` §3(Color)·§4(Typography)·§5(Spacing)·§6(Shape)를 따른다.
+ *
+ * 다크 모드 인프라(Colors.light/Colors.dark)는 유지하되, MVP는 다크 모드를 지원하지 않으므로
+ * 두 값 모두 라이트 팔레트로 채운다 — 나중에 다크 팔레트만 추가하면 된다.
  */
 
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
+const lightPalette = {
+  primary: '#65A986',
+  primaryLight: '#EDF6F1',
+
+  accent: '#F47C6C',
+  accentLight: '#FFF0ED',
+
+  lavender: '#A978E8',
+  lavenderLight: '#F4EEFC',
+
+  background: '#FFFDFC',
+  surface: '#FFFFFF',
+
+  textPrimary: '#292524',
+  textSecondary: '#78716C',
+
+  border: '#EEEAE7',
+
+  success: '#65A986',
+  warning: '#E9A23B',
+  info: '#6E9ECF',
+  danger: '#D95C5C',
+} as const;
+
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  light: lightPalette,
+  dark: lightPalette,
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
@@ -51,14 +65,36 @@ export const Fonts = Platform.select({
   },
 });
 
+/** 4pt 기반 spacing — design-guide §5. */
 export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 40,
+} as const;
+
+/** design-guide §6. */
+export const Radius = {
+  sm: 8,
+  input: 12,
+  button: 14,
+  card: 16,
+  lg: 20,
+  sheet: 24,
+  full: 999,
+} as const;
+
+/** design-guide §4 Type Scale. */
+export const Typography = {
+  display: { fontSize: 28, fontWeight: '700' },
+  title: { fontSize: 22, fontWeight: '700' },
+  heading: { fontSize: 18, fontWeight: '600' },
+  body: { fontSize: 16, fontWeight: '400' },
+  bodySmall: { fontSize: 14, fontWeight: '400' },
+  caption: { fontSize: 12, fontWeight: '400' },
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

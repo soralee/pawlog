@@ -139,22 +139,22 @@ export function PetForm({ onSubmit }: PetFormProps) {
 
 const styles = StyleSheet.create({
   form: {
-    gap: Spacing.two,
+    gap: Spacing.xs,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: Spacing.one,
-    padding: Spacing.two,
+    borderRadius: Spacing.xxs,
+    padding: Spacing.xs,
   },
   optionRow: {
     flexDirection: 'row',
-    gap: Spacing.two,
+    gap: Spacing.xs,
   },
   optionButton: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.md,
     borderWidth: 1,
     borderColor: '#ccc',
   },
@@ -163,8 +163,8 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     alignItems: 'center',
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
+    paddingVertical: Spacing.xs,
+    borderRadius: Spacing.xs,
     backgroundColor: '#3c87f7',
   },
 });
