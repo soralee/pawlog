@@ -1,11 +1,13 @@
 /**
  * Repository 단위 테스트용 아주 작은 인메모리 SQLite 페이크 (ADR `260915-141837`).
- * 실제 SQL 엔진이 아니라, 이 프로젝트가 실제로 쓰는 4가지 쿼리 패턴만 인식한다:
+ * 실제 SQL 엔진이 아니라, 이 프로젝트가 실제로 쓰는 쿼리 패턴만 인식한다:
  *   INSERT INTO <table> (...) VALUES (...)
  *   UPDATE <table> SET col = ?, ... WHERE id = ?
+ *   DELETE FROM <table> WHERE id = ?
  *   SELECT * FROM <table> WHERE id = ?
  *   SELECT * FROM <table> ORDER BY <col> <ASC|DESC>
- * Repository가 이 네 패턴 밖의 쿼리를 쓰면 에러를 던진다 — 새 패턴이 필요해지면 여기에 추가한다.
+ *   SELECT * FROM <table> WHERE pet_id = ? ORDER BY <col> <ASC|DESC>
+ * Repository가 이 패턴 밖의 쿼리를 쓰면 에러를 던진다 — 새 패턴이 필요해지면 여기에 추가한다.
  */
 type Row = Record<string, unknown>;
 
@@ -43,6 +45,16 @@ export function createFakeSqliteDatabase() {
       return { changes: 1, lastInsertRowId: 0 };
     }
 
+    const deleteMatch = sql.match(/DELETE FROM (\w+) WHERE id = \?/i);
+    if (deleteMatch) {
+      const [, table] = deleteMatch;
+      const rows = tableOf(table);
+      const index = rows.findIndex((r) => r.id === params[0]);
+      if (index === -1) return { changes: 0, lastInsertRowId: 0 };
+      rows.splice(index, 1);
+      return { changes: 1, lastInsertRowId: 0 };
+    }
+
     throw new Error(`fake-sqlite-database: unsupported runAsync query: ${sql}`);
   }
 
@@ -56,18 +68,30 @@ export function createFakeSqliteDatabase() {
     throw new Error(`fake-sqlite-database: unsupported getFirstAsync query: ${sql}`);
   }
 
-  async function getAllAsync<T>(sql: string): Promise<T[]> {
-    const match = sql.match(/SELECT \* FROM (\w+) ORDER BY (\w+) (ASC|DESC)/i);
-    if (match) {
-      const [, table, col, dir] = match;
-      const rows = [...tableOf(table)];
-      rows.sort((a, b) => {
-        const av = String(a[col]);
-        const bv = String(b[col]);
-        return dir.toUpperCase() === 'ASC' ? av.localeCompare(bv) : bv.localeCompare(av);
-      });
-      return rows as T[];
+  function sorted(rows: Row[], col: string, dir: string): Row[] {
+    const copy = [...rows];
+    copy.sort((a, b) => {
+      const av = String(a[col]);
+      const bv = String(b[col]);
+      return dir.toUpperCase() === 'ASC' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+    return copy;
+  }
+
+  async function getAllAsync<T>(sql: string, params: unknown[] = []): Promise<T[]> {
+    const byPet = sql.match(/SELECT \* FROM (\w+) WHERE pet_id = \? ORDER BY (\w+) (ASC|DESC)/i);
+    if (byPet) {
+      const [, table, col, dir] = byPet;
+      const rows = tableOf(table).filter((r) => r.pet_id === params[0]);
+      return sorted(rows, col, dir) as T[];
     }
+
+    const all = sql.match(/SELECT \* FROM (\w+) ORDER BY (\w+) (ASC|DESC)/i);
+    if (all) {
+      const [, table, col, dir] = all;
+      return sorted(tableOf(table), col, dir) as T[];
+    }
+
     throw new Error(`fake-sqlite-database: unsupported getAllAsync query: ${sql}`);
   }
 

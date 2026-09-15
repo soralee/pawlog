@@ -20,9 +20,11 @@ test('반려동물을 등록하면 목록에 나타난다', async () => {
 
   expect(await screen.findByText('등록된 반려동물이 없어요.')).toBeTruthy();
 
-  fireEvent.changeText(screen.getByLabelText('이름'), '보리');
-  fireEvent.changeText(screen.getByLabelText('생년월일'), '2018-06-15');
-  fireEvent.press(screen.getByLabelText('등록'));
+  // @testing-library/react-native 14는 fireEvent.*가 Promise를 반환한다 — await 없이 연달아
+  // 호출하면 상태 업데이트가 겹쳐 유실될 수 있다.
+  await fireEvent.changeText(screen.getByLabelText('이름'), '보리');
+  await fireEvent.changeText(screen.getByLabelText('생년월일'), '2018-06-15');
+  await fireEvent.press(screen.getByLabelText('등록'));
 
   await waitFor(() => expect(screen.getByText('보리')).toBeTruthy());
 });
