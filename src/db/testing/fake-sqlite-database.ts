@@ -4,10 +4,11 @@
  *   INSERT INTO <table> (...) VALUES (...)
  *   UPDATE <table> SET col = ?, ... WHERE id = ?
  *   DELETE FROM <table> WHERE id = ?
- *   SELECT * FROM <table> WHERE id = ?
+ *   SELECT * FROM <table> WHERE <column> = ?
+ *   SELECT * FROM <table> WHERE <column> = ? ORDER BY <col> <ASC|DESC>
  *   SELECT * FROM <table> ORDER BY <col> <ASC|DESC>
- *   SELECT * FROM <table> WHERE pet_id = ? ORDER BY <col> <ASC|DESC>
- * Repository가 이 패턴 밖의 쿼리를 쓰면 에러를 던진다 — 새 패턴이 필요해지면 여기에 추가한다.
+ * `<column>`은 아무 컬럼이나 될 수 있다(id, pet_id, source_id 등) — 값 비교는 항상 `===`.
+ * Repository가 이 패턴 밖의 쿼리(다중 조건 WHERE 등)를 쓰면 에러를 던진다.
  */
 type Row = Record<string, unknown>;
 
@@ -59,10 +60,10 @@ export function createFakeSqliteDatabase() {
   }
 
   async function getFirstAsync<T>(sql: string, params: unknown[] = []): Promise<T | null> {
-    const match = sql.match(/SELECT \* FROM (\w+) WHERE id = \?/i);
+    const match = sql.match(/SELECT \* FROM (\w+) WHERE (\w+) = \?/i);
     if (match) {
-      const [, table] = match;
-      const row = tableOf(table).find((r) => r.id === params[0]);
+      const [, table, column] = match;
+      const row = tableOf(table).find((r) => r[column] === params[0]);
       return (row as T) ?? null;
     }
     throw new Error(`fake-sqlite-database: unsupported getFirstAsync query: ${sql}`);
@@ -79,10 +80,10 @@ export function createFakeSqliteDatabase() {
   }
 
   async function getAllAsync<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-    const byPet = sql.match(/SELECT \* FROM (\w+) WHERE pet_id = \? ORDER BY (\w+) (ASC|DESC)/i);
-    if (byPet) {
-      const [, table, col, dir] = byPet;
-      const rows = tableOf(table).filter((r) => r.pet_id === params[0]);
+    const byColumn = sql.match(/SELECT \* FROM (\w+) WHERE (\w+) = \? ORDER BY (\w+) (ASC|DESC)/i);
+    if (byColumn) {
+      const [, table, column, col, dir] = byColumn;
+      const rows = tableOf(table).filter((r) => r[column] === params[0]);
       return sorted(rows, col, dir) as T[];
     }
 

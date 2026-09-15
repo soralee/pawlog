@@ -1,6 +1,8 @@
 import { createCheckupsTable } from './004_create_checkups';
 import { createHealthRecordsTable } from './002_create_health_records';
+import { createMedicationsTable } from './006_create_medications';
 import { createPetsTable } from './001_create_pets';
+import { createRemindersTable } from './007_create_reminders';
 import { createVaccinationsTable } from './003_create_vaccinations';
 import { createWeightRecordsTable } from './005_create_weight_records';
 
@@ -11,4 +13,6 @@ export const migrations = [
   createVaccinationsTable,
   createCheckupsTable,
   createWeightRecordsTable,
+  createMedicationsTable,
+  createRemindersTable,
 ];
