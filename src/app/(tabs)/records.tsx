@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
@@ -110,10 +110,12 @@ export default function RecordsScreen() {
     void ensureSelectedPet();
   }, [ensureSelectedPet]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- SQLite(외부 시스템) 동기화용 마운트 시 fetch
-    void loadEntries();
-  }, [loadEntries]);
+  useFocusEffect(
+    useCallback(() => {
+      // 다른 화면에서 기록을 추가/수정/삭제하고 돌아왔을 때 최신 목록을 반영해야 한다.
+      void loadEntries();
+    }, [loadEntries]),
+  );
 
   const filtered = filter === 'all' ? entries : entries.filter((entry) => entry.type === filter);
 

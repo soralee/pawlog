@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 // jest.mock 팩토리는 호이스팅되어 "mock"으로 시작하는 이름의 외부 변수만 참조할 수 있다.
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
+import { useEffect as mockUseEffect } from 'react';
 
 import RecordsScreen from '@/app/(tabs)/records';
 import {
@@ -26,6 +27,9 @@ jest.mock('expo-sqlite', () => ({
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
+  // 테스트 환경에는 실제 네비게이션 포커스 이벤트가 없으므로, 콜백이 바뀔 때 실행되는
+  // useEffect로 대체해 "포커스될 때 다시 불러온다"는 동작을 흉내낸다.
+  useFocusEffect: (callback: () => void) => mockUseEffect(callback, [callback]),
 }));
 
 // 같은 파일에서 render()를 여러 번 호출하므로, 이전 테스트의 트리를 정리하지 않으면
