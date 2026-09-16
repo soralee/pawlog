@@ -1,4 +1,10 @@
-import { differenceInMonths, differenceInYears, isValid, parseISO } from 'date-fns';
+import {
+  differenceInCalendarDays,
+  differenceInMonths,
+  differenceInYears,
+  isValid,
+  parseISO,
+} from 'date-fns';
 
 /** 생일로부터 "N살 M개월" 형태의 나이 문자열을 만든다. */
 export function formatAge(birthDate: Date, now: Date = new Date()): string {
@@ -20,4 +26,9 @@ export function isValidDateString(value: string): boolean {
 /** 오늘 날짜를 "YYYY-MM-DD"로 반환한다 — 날짜 입력 필드의 기본값으로 쓴다. */
 export function todayDateString(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** "YYYY-MM-DD"가 오늘로부터 며칠 후인지 계산한다. 지난 날짜는 음수. */
+export function daysUntil(dateString: string, today: string = todayDateString()): number {
+  return differenceInCalendarDays(parseISO(dateString), parseISO(today));
 }

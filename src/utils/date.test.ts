@@ -1,4 +1,4 @@
-import { formatAge, isValidDateString } from './date';
+import { daysUntil, formatAge, isValidDateString } from './date';
 
 test('formatAge returns years and months', () => {
   const now = new Date('2026-09-15');
@@ -22,4 +22,16 @@ test('isValidDateString rejects malformed or non-existent dates', () => {
   expect(isValidDateString('2026-9-15')).toBe(false); // 자리수 다름
   expect(isValidDateString('아무말')).toBe(false);
   expect(isValidDateString('')).toBe(false);
+});
+
+test('daysUntil returns positive days for a future date', () => {
+  expect(daysUntil('2026-09-28', '2026-09-14')).toBe(14);
+});
+
+test('daysUntil returns 0 for today', () => {
+  expect(daysUntil('2026-09-14', '2026-09-14')).toBe(0);
+});
+
+test('daysUntil returns negative days for a past date', () => {
+  expect(daysUntil('2026-09-10', '2026-09-14')).toBe(-4);
 });
