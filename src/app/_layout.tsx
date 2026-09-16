@@ -14,7 +14,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       <SQLiteProvider databaseName={DATABASE_NAME} onInit={onInit}>
-        <Stack>
+        <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
       </SQLiteProvider>
