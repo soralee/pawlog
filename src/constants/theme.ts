@@ -1,5 +1,5 @@
 /**
- * Pawlog 디자인 토큰. `plan/design-guide.md` §3(Color)·§4(Typography)·§5(Spacing)·§6(Shape)를 따른다.
+ * Pawlog 디자인 토큰. `plan/pawlog-design-guide-v2.md` §3(Color)·§6(Typography)·§7(Spacing)·§8(Shape)를 따른다.
  *
  * 다크 모드 인프라(Colors.light/Colors.dark)는 유지하되, MVP는 다크 모드를 지원하지 않으므로
  * 두 값 모두 라이트 팔레트로 채운다 — 나중에 다크 팔레트만 추가하면 된다.
@@ -10,11 +10,9 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 const lightPalette = {
-  primary: '#65A986',
-  primaryLight: '#EDF6F1',
-
-  accent: '#F47C6C',
-  accentLight: '#FFF0ED',
+  primary: '#F47C6C',
+  primaryPressed: '#E96F60',
+  primaryLight: '#FFF0ED',
 
   lavender: '#A978E8',
   lavenderLight: '#F4EEFC',
@@ -24,8 +22,10 @@ const lightPalette = {
 
   textPrimary: '#292524',
   textSecondary: '#78716C',
+  textMuted: '#A8A29E',
 
   border: '#EEEAE7',
+  divider: '#F3F0EE',
 
   success: '#65A986',
   warning: '#E9A23B',
@@ -65,29 +65,30 @@ export const Fonts = Platform.select({
   },
 });
 
-/** 4pt 기반 spacing — design-guide §5. */
+/** 4pt 기반 spacing — design-guide §7. */
 export const Spacing = {
   xxs: 4,
   xs: 8,
   sm: 12,
   md: 16,
+  screen: 20,
   lg: 24,
   xl: 32,
   xxl: 40,
 } as const;
 
-/** design-guide §6. */
+/** design-guide §8. */
 export const Radius = {
   sm: 8,
   input: 12,
   button: 14,
   card: 16,
-  lg: 20,
+  largeCard: 20,
   sheet: 24,
   full: 999,
 } as const;
 
-/** design-guide §4 Type Scale. */
+/** design-guide §6 Type Scale. */
 export const Typography = {
   display: { fontSize: 28, fontWeight: '700' },
   title: { fontSize: 22, fontWeight: '700' },
