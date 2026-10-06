@@ -1,8 +1,10 @@
+import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ListItem } from '@/components/list-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -16,6 +18,7 @@ import { formatAge } from '@/utils/date';
 
 export default function PetsScreen() {
   const db = useSQLiteContext();
+  const router = useRouter();
   const repository = useMemo(() => createPetRepository(db), [db]);
   const [pets, setPets] = useState<Pet[]>([]);
 
@@ -52,6 +55,12 @@ export default function PetsScreen() {
               </ThemedText>
             </ThemedView>
           )}
+        />
+
+        <ListItem
+          title="복약 관리"
+          trailing={<ThemedText themeColor="textSecondary">{'>'}</ThemedText>}
+          onPress={() => router.push('/medication')}
         />
 
         <PetForm onSubmit={handleCreate} />

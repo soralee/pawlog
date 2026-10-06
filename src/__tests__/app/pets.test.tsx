@@ -15,6 +15,11 @@ jest.mock('expo-sqlite', () => ({
   },
 }));
 
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 test('반려동물을 등록하면 목록에 나타난다', async () => {
   await render(<PetsScreen />);
 
@@ -27,4 +32,11 @@ test('반려동물을 등록하면 목록에 나타난다', async () => {
   await fireEvent.press(screen.getByLabelText('등록'));
 
   await waitFor(() => expect(screen.getByText('보리')).toBeTruthy());
+});
+
+test('"복약 관리"를 누르면 복약 관리 화면으로 이동한다', async () => {
+  await render(<PetsScreen />);
+
+  await fireEvent.press(screen.getByLabelText('복약 관리'));
+  expect(mockPush).toHaveBeenCalledWith('/medication');
 });

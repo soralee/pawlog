@@ -90,6 +90,13 @@ export function createMedicationRepository(db: MedicationDb) {
     return record;
   }
 
+  async function get(id: string): Promise<Medication | null> {
+    const row = await db.getFirstAsync<MedicationRow>('SELECT * FROM medications WHERE id = ?', [
+      id,
+    ]);
+    return row ? toMedication(row) : null;
+  }
+
   async function listByPet(petId: string): Promise<Medication[]> {
     const rows = await db.getAllAsync<MedicationRow>(
       'SELECT * FROM medications WHERE pet_id = ? ORDER BY start_date DESC',
@@ -102,13 +109,10 @@ export function createMedicationRepository(db: MedicationDb) {
     id: string,
     input: Partial<Omit<CreateMedicationInput, 'petId'>>,
   ): Promise<Medication | null> {
-    const existing = await db.getFirstAsync<MedicationRow>(
-      'SELECT * FROM medications WHERE id = ?',
-      [id],
-    );
+    const existing = await get(id);
     if (!existing) return null;
     const updated: Medication = {
-      ...toMedication(existing),
+      ...existing,
       ...input,
       updatedAt: new Date().toISOString(),
     };
@@ -132,5 +136,5 @@ export function createMedicationRepository(db: MedicationDb) {
     await db.runAsync('DELETE FROM medications WHERE id = ?', [id]);
   }
 
-  return { create, listByPet, update, remove };
+  return { create, get, listByPet, update, remove };
 }

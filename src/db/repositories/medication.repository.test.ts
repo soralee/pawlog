@@ -51,3 +51,17 @@ test('존재하지 않는 id를 수정하면 null', async () => {
   const repo = setup();
   expect(await repo.update('없는-id', { time: '10:00' })).toBeNull();
 });
+
+test('get으로 단건 조회한다', async () => {
+  const repo = setup();
+  const created = await repo.create({
+    petId: 'pet-1',
+    name: '영양제',
+    startDate: '2026-09-01',
+    time: '21:00',
+    frequency: '매일',
+  });
+
+  expect(await repo.get(created.id)).toEqual(created);
+  expect(await repo.get('없는-id')).toBeNull();
+});
