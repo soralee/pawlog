@@ -9,6 +9,10 @@ import {
   createHealthRecordRepository,
   type HealthRecordDb,
 } from '@/db/repositories/health-record.repository';
+import {
+  createHospitalExpenseRepository,
+  type HospitalExpenseDb,
+} from '@/db/repositories/hospital-expense.repository';
 import { createPetRepository, type PetDb } from '@/db/repositories/pet.repository';
 import {
   createVaccinationRepository,
@@ -83,16 +87,22 @@ test('여러 종류의 기록이 필터로 좁혀지고, 최신 월부터 그룹
     vaccineName: '종합백신',
     vaccinatedAt: '2026-09-03',
   });
+  const hospitalExpenseRepo = createHospitalExpenseRepository(
+    mockDbInstance! as unknown as HospitalExpenseDb,
+  );
+  await hospitalExpenseRepo.create({ petId: pet.id, spentAt: '2026-09-15', amount: 40000 });
 
   await render(<RecordsScreen />);
 
   await waitFor(() => expect(screen.getByText('종합백신')).toBeTruthy());
   expect(screen.getByText('건강 기록')).toBeTruthy();
+  expect(screen.getByText('40,000원')).toBeTruthy();
   expect(screen.getByText('2026년 9월')).toBeTruthy();
   expect(screen.getByText('2026년 8월')).toBeTruthy();
 
-  await fireEvent.press(screen.getByLabelText('접종'));
+  await fireEvent.press(screen.getByLabelText('병원비'));
 
-  expect(screen.getByText('종합백신')).toBeTruthy();
+  expect(screen.getByText('40,000원')).toBeTruthy();
   expect(screen.queryByText('건강 기록')).toBeNull();
+  expect(screen.queryByText('종합백신')).toBeNull();
 });

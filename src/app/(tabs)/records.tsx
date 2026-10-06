@@ -13,12 +13,13 @@ import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
 import { createHealthRecordRepository } from '@/db/repositories/health-record.repository';
+import { createHospitalExpenseRepository } from '@/db/repositories/hospital-expense.repository';
 import { createPetRepository } from '@/db/repositories/pet.repository';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
 import { createWeightRecordRepository } from '@/db/repositories/weight-record.repository';
 import { useAppStore } from '@/stores/app.store';
 
-type RecordType = 'health' | 'vaccination' | 'checkup' | 'weight';
+type RecordType = 'health' | 'vaccination' | 'checkup' | 'weight' | 'hospital-expense';
 type FilterKey = 'all' | RecordType;
 
 type TimelineEntry = {
@@ -35,6 +36,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'vaccination', label: '접종' },
   { key: 'checkup', label: '검진' },
   { key: 'weight', label: '체중' },
+  { key: 'hospital-expense', label: '병원비' },
 ];
 
 function monthGroupKey(dateStr: string): string {
@@ -66,12 +68,14 @@ export default function RecordsScreen() {
 
   const loadEntries = useCallback(async () => {
     if (!selectedPetId) return;
-    const [healthRecords, vaccinations, checkups, weightRecords] = await Promise.all([
-      createHealthRecordRepository(db).listByPet(selectedPetId),
-      createVaccinationRepository(db).listByPet(selectedPetId),
-      createCheckupRepository(db).listByPet(selectedPetId),
-      createWeightRecordRepository(db).listByPet(selectedPetId),
-    ]);
+    const [healthRecords, vaccinations, checkups, weightRecords, hospitalExpenses] =
+      await Promise.all([
+        createHealthRecordRepository(db).listByPet(selectedPetId),
+        createVaccinationRepository(db).listByPet(selectedPetId),
+        createCheckupRepository(db).listByPet(selectedPetId),
+        createWeightRecordRepository(db).listByPet(selectedPetId),
+        createHospitalExpenseRepository(db).listByPet(selectedPetId),
+      ]);
 
     const all: TimelineEntry[] = [
       ...healthRecords.map((r) => ({
@@ -100,6 +104,13 @@ export default function RecordsScreen() {
         type: 'weight' as const,
         date: r.measuredAt,
         title: `체중 ${r.weightKg}kg`,
+      })),
+      ...hospitalExpenses.map((r) => ({
+        id: r.id,
+        type: 'hospital-expense' as const,
+        date: r.spentAt,
+        title: `${r.amount.toLocaleString('ko-KR')}원`,
+        subtitle: r.hospitalName ?? undefined,
       })),
     ];
     all.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -138,14 +149,16 @@ export default function RecordsScreen() {
     if (type === 'health') router.push('/health-record/new');
     else if (type === 'vaccination') router.push('/vaccination/new');
     else if (type === 'checkup') router.push('/checkup/new');
-    else router.push('/weight/new');
+    else if (type === 'weight') router.push('/weight/new');
+    else router.push('/hospital-expense/new');
   }
 
   function openDetail(entry: TimelineEntry) {
     if (entry.type === 'health') router.push(`/health-record/${entry.id}`);
     else if (entry.type === 'vaccination') router.push(`/vaccination/${entry.id}`);
     else if (entry.type === 'checkup') router.push(`/checkup/${entry.id}`);
-    else router.push(`/weight/${entry.id}`);
+    else if (entry.type === 'weight') router.push(`/weight/${entry.id}`);
+    else router.push(`/hospital-expense/${entry.id}`);
   }
 
   return (
@@ -227,6 +240,7 @@ export default function RecordsScreen() {
           { label: '예방접종', onPress: () => openNew('vaccination') },
           { label: '건강검진', onPress: () => openNew('checkup') },
           { label: '체중', onPress: () => openNew('weight') },
+          { label: '병원비', onPress: () => openNew('hospital-expense') },
         ]}
       />
     </ThemedView>
