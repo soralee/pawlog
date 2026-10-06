@@ -56,7 +56,9 @@
 - 사진
 - 나이 자동 계산
 - 프로필 수정
-- 여러 반려동물 등록 및 전환
+- 여러 반려동물 등록 및 개별 관리
+- 각 건강 기록/일정/비용/체중 데이터는 반드시 하나의 Pet에 귀속
+- 전체 보기와 Pet별 보기 지원
 
 생년월일을 모르는 경우 입력을 강제하지 않는다.
 
@@ -151,60 +153,82 @@ Bottom Tabs:
 
 ### Home
 
-지금 알아야 할 정보를 보여준다.
+등록된 모든 반려동물의 현재 상태와 가까운 일정을 한눈에 요약한다. 한 마리만 등록된 경우 불필요한 전체/개별 구분은 숨긴다.
 
 ### Records
 
-이미 일어난 일을 찾고 확인한다.
+모든 반려동물의 과거 기록을 통합해서 보거나 특정 Pet으로 필터링해 확인한다. 전체 보기에서는 각 Row에 Pet 이름/사진을 표시해 누구의 기록인지 명확히 한다.
 
 ### Schedule
 
-앞으로 해야 할 일을 확인한다.
+모든 반려동물의 앞으로의 일정을 통합해서 보거나 특정 Pet으로 필터링한다. 전체 보기에서는 일정마다 대상 Pet을 명확히 표시한다.
 
 ### Pets
 
-반려동물 자체의 프로필과 데이터를 관리한다.
+등록된 반려동물 전체를 관리하는 Profile Hub다. 여러 Pet을 등록/추가할 수 있고 각 Pet을 선택하면 해당 Pet의 예방접종, 건강검진, 복약, 체중, 병원비와 건강 기록을 개별적으로 추적한다.
 
-> **Home에서는 지금 알아야 할 것을 보여주고, Records에서는 지나간 일을 찾고, Schedule에서는 앞으로 할 일을 확인하며, Pets에서는 우리 아이 자체를 관리한다.**
+> **Home은 모든 아이의 현재를 요약하고, Records는 전체 또는 아이별 과거를 찾고, Schedule은 전체 또는 아이별 미래를 확인하며, Pets는 각 아이의 건강 이력을 개별 관리한다.**
 
 ---
 
-## 5. Home Dashboard
+## 5. Multi-pet Experience & Home Dashboard
 
-표시 순서:
+Pawlog의 Multi-pet 지원은 부가 기능이 아니라 MVP의 기본 동작이다.
 
-1. Pet Hero
-2. Next Schedule
+### Multi-pet Rules
+
+- 사용자는 Pet을 여러 마리 등록할 수 있다.
+- 모든 건강 데이터는 반드시 `petId`를 가진다.
+- Home은 특정 `selectedPetId`에 종속되지 않고 등록된 모든 Pet을 Aggregate한다.
+- Records/Schedule은 기본 `전체` 보기와 Pet별 Filter를 제공한다.
+- Pet Detail에서 진입한 Domain 화면은 해당 Pet으로 Scope한다.
+- 새 기록/일정 생성 시 대상 Pet이 반드시 명확해야 한다.
+- Pet이 1마리뿐이면 불필요한 Pet Filter와 중복 Breakdown을 숨긴다.
+
+### Home 표시 순서
+
+1. My Pets Summary
+2. Upcoming Schedule
 3. Today Medication
 4. Monthly Expense
 5. Recent Records
 
-### Pet Hero
+### My Pets Summary
+
+등록된 Pet을 가로 목록 또는 компакт한 Summary Card로 보여준다.
+
+각 Pet:
 
 - 사진
 - 이름
-- 나이
-- 기본 프로필 정보
+- 나이/종류
+- 가장 가까운 중요 일정 또는 오늘 할 일
 
-### Next Schedule
+Pet을 누르면 해당 Pet Detail로 이동한다.
 
-가장 가까운 미완료 일정 하나를 우선 보여준다.
+### Upcoming Schedule
 
-필요한 경우 전체 일정으로 이동할 수 있다.
+모든 Pet의 미완료 일정을 합쳐 가까운 순으로 보여준다.
+
+각 항목에 Pet 사진 또는 이름을 반드시 표시한다.
 
 ### Today Medication
 
-오늘 복용해야 할 약/영양제를 보여준다.
+모든 Pet의 오늘 복약 일정을 합쳐 보여준다. 각 항목의 대상 Pet을 표시한다.
 
 ### Monthly Expense
 
-이번 달 병원비 총액을 보여준다.
+이번 달 전체 병원비 총액을 우선 보여준다.
+
+Pet이 여러 마리일 경우 Pet별 금액 Breakdown을 함께 보여줄 수 있다. 한 마리일 경우 동일한 Breakdown을 반복하지 않는다.
 
 MVP에서는 Chart를 사용하지 않는다.
 
 ### Recent Records
 
-최근 기록 3~5개를 Timeline/List 형태로 보여준다.
+모든 Pet의 최근 기록 3~5개를 통합 Timeline/List로 보여준다.
+
+각 Row에 Pet 이름 또는 작은 Photo를 표시한다.
 
 Home에 Shortcut Grid를 추가하지 않는다.
 
@@ -269,7 +293,8 @@ SQLite가 Persistent Data의 Source of Truth다.
 
 Zustand는 다음과 같은 UI/App State만 관리한다.
 
-- selectedPetId
+- selectedPetId (Pet Detail/기록 생성 등 명시적인 개별 Pet Context에만 사용)
+- recordsPetFilter / schedulePetFilter 같은 일시적 UI Filter가 필요한 경우
 - onboarding 상태
 - theme 등
 
@@ -356,7 +381,9 @@ src/
 - Pet registration
 - Pet profile
 - Pet edit
-- Pet selection
+- Multi-pet registration
+- Pet profile/detail
+- Pet-scoped health navigation
 
 ### Phase 2 — Records
 
@@ -365,11 +392,13 @@ src/
 - Checkup
 - Weight
 - Unified Records list
+- All/Pet-specific Records filtering
 
 ### Phase 3 — Medication & Reminder
 
 - Medication
 - Schedule
+- All/Pet-specific Schedule filtering
 - Local Notification
 - Notification edit/delete synchronization
 
@@ -377,7 +406,8 @@ src/
 
 - Hospital expense
 - Monthly expense summary
-- Home dashboard
+- Multi-pet Home dashboard
+- Aggregated upcoming schedule / medication / expenses
 - Recent records
 
 ### Phase 5 — Photo & Weight Chart
@@ -460,12 +490,12 @@ Android Package: com.soralee.pawlog
 
 Pawlog MVP는 다음 흐름이 안정적으로 동작하면 성공으로 본다.
 
-- Pet을 등록할 수 있다.
+- Pet을 여러 마리 등록하고 각각 개별 관리할 수 있다.
 - 건강 관련 기록을 남길 수 있다.
 - 예방접종/검진/복약 일정을 등록할 수 있다.
-- 앞으로 해야 할 일을 Home과 Schedule에서 확인할 수 있다.
+- 모든 Pet의 앞으로 해야 할 일을 Home에서 통합 확인하고 Schedule에서 전체/Pet별로 확인할 수 있다.
 - 필요한 일정에 Local Notification을 받을 수 있다.
-- 과거 기록을 Records에서 찾을 수 있다.
+- 과거 기록을 Records에서 전체/Pet별로 찾을 수 있다.
 - 병원비와 체중을 기록할 수 있다.
 - 앱을 종료하고 다시 실행해도 SQLite 데이터가 유지된다.
 - 서버/로그인 없이 핵심 경험이 완결된다.
