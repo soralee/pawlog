@@ -140,7 +140,7 @@ export default function HomeScreen() {
 
           <ThemedView style={styles.section}>
             <ThemedText type="heading">이번 달 병원비</ThemedText>
-            <ThemedText type="title">
+            <ThemedText type="display">
               {dashboard.monthlyExpenseTotal.toLocaleString('ko-KR')}원
             </ThemedText>
           </ThemedView>
