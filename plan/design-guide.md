@@ -2,7 +2,7 @@
 
 > **Warm Coral을 중심으로 한, 밝고 따뜻한 반려동물 건강수첩**
 
-- Version: 3.0
+- Version: 3.1
 - Platform: iOS / Android
 - Related:
   - `plan/pawlog-product-plan.md`
@@ -377,29 +377,170 @@ Border: #EEE8E5
 
 ---
 
-## 15. Bottom Navigation
+## 15. Iconography
+
+MVP 아이콘은 Expo 기본 생태계에서 사용하기 쉬운 **Ionicons (`@expo/vector-icons/Ionicons`)**으로 통일한다.
+
+아이콘 스타일:
+
+- 기본 크기: 24
+- 작은 보조 아이콘: 20
+- 아주 작은 상태 아이콘: 16
+- 기본 Stroke 느낌은 Ionicons 기본값을 유지한다.
+- 새로운 Icon Library를 화면별로 혼용하지 않는다.
+- Emoji를 기능 아이콘 대신 사용하지 않는다.
+- 아이콘만 있는 Button은 최소 `44 x 44` Touch Target을 확보한다.
+- 아이콘 색상은 역할에 따라 `textPrimary`, `textSecondary`, `primary`, Semantic Token을 사용한다.
+- 임의의 Hex Color를 Icon에 직접 추가하지 않는다.
+
+### Common Action Icons
+
+| Action | Ionicons | Size | Default Color |
+| --- | --- | ---: | --- |
+| Back | `chevron-back` | 24 | Text Primary |
+| Close | `close` | 24 | Text Primary |
+| Add | `add` | 24 | Primary 또는 White |
+| Edit | `create-outline` | 22 | Text Primary |
+| Delete | `trash-outline` | 22 | Danger |
+| More | `ellipsis-horizontal` | 22 | Text Secondary |
+| Forward | `chevron-forward` | 20 | Text Muted |
+| Camera | `camera-outline` | 24 | Text Secondary |
+| Notification | `notifications-outline` | 22 | Text Secondary |
+| Calendar | `calendar-outline` | 22 | Text Secondary |
+| Weight | `scale-outline` | 22 | Text Secondary |
+| Hospital / Health | `medkit-outline` | 22 | Text Secondary |
+
+Icon은 장식보다 **행동과 정보 이해를 돕는 용도**로 사용한다.
+
+---
+
+## 16. Bottom Navigation
+
+Bottom Navigation은 4개 Tab으로 고정한다.
+
+| Tab | Inactive Icon | Active Icon | Label |
+| --- | --- | --- | --- |
+| Home | `home-outline` | `home` | 홈 |
+| Records | `document-text-outline` | `document-text` | 기록 |
+| Schedule | `calendar-outline` | `calendar` | 일정 |
+| Pets | `paw-outline` | `paw` | 내 반려동물 |
+
+### Dimensions
 
 ```text
-홈 / 기록 / 일정 / 내 반려동물
+Icon Size           24
+Label Size          12
+Icon ↔ Label Gap     4
+Minimum Tab Target  44 x 44
+Horizontal Layout   Equal Width
+Background          #FFFFFF
+Top Border          #F5F0EE
 ```
+
+Bottom Bar의 실제 전체 높이는 기기 Safe Area를 포함하므로 고정 픽셀로 강제하지 않는다. **Safe Area 위의 Content 영역은 약 56~60pt**를 기준으로 한다.
 
 Active:
 
 ```text
-Icon: #F47C6C
+Icon:  #F47C6C
 Label: #F47C6C
+Icon Style: Filled
 ```
 
 Inactive:
 
 ```text
-Icon: #78716C
+Icon:  #78716C
 Label: #78716C
+Icon Style: Outline
 ```
 
-Bottom Navigation Background는 White로 유지한다.
+규칙:
+
+- Active Tab만 Coral을 사용한다.
+- Active Background Pill이나 큰 Colored Block은 기본적으로 사용하지 않는다.
+- Label을 숨기지 않는다.
+- Badge가 필요해지기 전까지 Badge UI를 만들지 않는다.
+- Bottom Navigation Background는 White로 유지한다.
+- iOS Home Indicator와 Android Navigation 영역의 Safe Area를 침범하지 않는다.
 
 ---
+
+## 20. Header / Navigation Bar
+
+Full Screen Form, Detail, Edit 화면의 Header를 공통화한다.
+
+### Standard Header
+
+```text
+Height              56
+Horizontal Padding  12~20
+Title               18 / SemiBold
+Icon                24
+Icon Touch Target   44 x 44
+Background          Screen Background 또는 White
+Bottom Border       기본 없음
+```
+
+대표 구조:
+
+```text
+[‹]  화면 제목                         [Action]
+```
+
+규칙:
+
+- Back은 `chevron-back`
+- Close가 필요한 Modal은 `close`
+- 우측 Text Action은 `body 16 / SemiBold`
+- Edit Detail 화면에서는 우측에 `수정` Text Action을 우선한다.
+- 아이콘이 더 명확한 경우에만 Icon Action을 사용한다.
+- Header 아래에 불필요한 Shadow를 넣지 않는다.
+- Screen Title이 긴 경우 한 줄을 기본으로 하고 필요한 경우 말줄임 처리한다.
+
+Root Tab 화면은 큰 Back Button Header를 사용하지 않는다.
+
+---
+
+## 21. Common Component Dimensions
+
+Claude Code 구현 시 다음 치수를 기본값으로 사용한다. Reference Screenshot에 명확한 차이가 있다면 Screenshot을 우선하되, 새로운 임의 값을 계속 추가하지 않는다.
+
+| Component | Default |
+| --- | --- |
+| Screen Horizontal Padding | 20 |
+| Header Content Height | 56 |
+| Primary/Secondary Button Height | 48 |
+| Button Horizontal Padding | 16 |
+| Input Min Height | 48 |
+| List Row Min Height | 56 |
+| Chip Min Height | 36 |
+| Icon Button Touch Target | 44 x 44 |
+| Standard Icon | 24 |
+| Small Icon | 20 |
+| Card Padding | 16 |
+| Pet Avatar Medium | 48 |
+| Pet Avatar Large | 72 |
+| Pet Hero Photo | 96+ |
+| Bottom Sheet Top Radius | 24 |
+
+### List Row
+
+기본 구조:
+
+```text
+[Optional Icon/Avatar]  Primary Text          [Value/Chevron]
+                        Secondary Text
+```
+
+- 정보만 보여주는 Row에 불필요한 Chevron을 넣지 않는다.
+- Detail로 이동하는 Row에는 `chevron-forward`를 사용할 수 있다.
+- Row 전체를 Touch Target으로 사용한다.
+- Divider는 필요할 때만 `divider` Token을 사용한다.
+
+---
+
+## 22. Screen Visual Direction
 
 ## 16. Screen Visual Direction
 
@@ -454,7 +595,7 @@ Coral은 프로필 수정 버튼이나 선택 상태 등 Action에 사용하고,
 
 ---
 
-## 17. Empty State & Illustration
+## 20. Empty State & Illustration
 
 Empty State에서는 작은 Illustration을 사용할 수 있다.
 
@@ -479,7 +620,7 @@ Illustration:
 
 ---
 
-## 18. Accessibility
+## 21. Accessibility
 
 - 최소 Touch Target: `44 x 44`
 - Button 권장 최소 높이: `48`
@@ -491,7 +632,7 @@ Illustration:
 
 ---
 
-## 19. Motion
+## 22. Motion
 
 허용:
 
@@ -509,7 +650,7 @@ Illustration:
 
 ---
 
-## 20. Voice & Microcopy
+## 23. Voice & Microcopy
 
 Tone:
 
@@ -530,7 +671,7 @@ Pawlog는 의료 진단 앱이 아니다.
 
 ---
 
-## 21. Theme Tokens
+## 24. Theme Tokens
 
 `src/theme/tokens.ts` 초기 기준:
 
@@ -589,7 +730,7 @@ export const typography = {
 
 ---
 
-## 22. Screenshot Reference Rule
+## 25. Screenshot Reference Rule
 
 UI Reference Screenshot이 프로젝트에 제공되는 경우 **레이아웃과 시각적 구성은 Screenshot을 우선 기준으로 사용한다.**
 
@@ -608,7 +749,7 @@ Claude Code 등 구현 도구는 Reference Screenshot을 임의로 재해석하�
 
 ---
 
-## 23. Do / Don't
+## 26. Do / Don't
 
 ### Do
 
@@ -634,7 +775,7 @@ Claude Code 등 구현 도구는 Reference Screenshot을 임의로 재해석하�
 
 ---
 
-## 24. MVP Design Completion Criteria
+## 27. MVP Design Completion Criteria
 
 - Warm Coral이 Primary로 일관되게 사용된다.
 - Sage와 Lavender가 브랜드 요소에서 제거되어 있다.
