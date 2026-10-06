@@ -1,5 +1,5 @@
 /**
- * Pawlog 디자인 토큰. `plan/pawlog-design-guide-v2.md` §3(Color)·§6(Typography)·§7(Spacing)·§8(Shape)를 따른다.
+ * Pawlog 디자인 토큰. `plan/design-guide.md`(Version 3.1) §3(Color)·§5(Typography)·§6(Spacing)·§7(Shape)를 따른다.
  *
  * 다크 모드 인프라(Colors.light/Colors.dark)는 유지하되, MVP는 다크 모드를 지원하지 않으므로
  * 두 값 모두 라이트 팔레트로 채운다 — 나중에 다크 팔레트만 추가하면 된다.
@@ -14,18 +14,15 @@ const lightPalette = {
   primaryPressed: '#E96F60',
   primaryLight: '#FFF0ED',
 
-  lavender: '#A978E8',
-  lavenderLight: '#F4EEFC',
-
-  background: '#FFFDFC',
+  background: '#FFF9F7',
   surface: '#FFFFFF',
 
   textPrimary: '#292524',
   textSecondary: '#78716C',
   textMuted: '#A8A29E',
 
-  border: '#EEEAE7',
-  divider: '#F3F0EE',
+  border: '#EEE8E5',
+  divider: '#F5F0EE',
 
   success: '#65A986',
   warning: '#E9A23B',

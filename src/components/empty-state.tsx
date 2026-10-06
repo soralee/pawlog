@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: Radius.full,
-    backgroundColor: Colors.light.lavenderLight,
+    backgroundColor: Colors.light.primaryLight,
   },
   centerText: {
     textAlign: 'center',
