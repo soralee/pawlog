@@ -674,10 +674,375 @@ Screenshot에 과거 Sage/Lavender Color가 포함되어 있더라도 색은 복
 
 Layout은 Screenshot을 최대한 충실하게 재현하고 Color는 `design-guide.md`의 Warm Coral System을 사용한다.
 
+
 ---
 
-# Final Layout Principle
+# 23. Warm Coral Screen Design Blueprints
 
-> **Home은 현재, Records는 과거, Schedule은 미래, Pets는 반려동물 자체를 관리한다.**
+이 섹션은 실제 화면 구현 명세다. Claude Code는 기능만 만족하는 임의 CRUD UI가 아니라 아래 Visual Hierarchy를 구현한다.
 
-화면을 추가하거나 기능을 배치할 때 이 역할이 섞이지 않도록 한다.
+## Global Rules
+
+- Background는 Warm Cream, 주요 Surface는 White.
+- Coral은 CTA, Active, D-day 등 중요한 곳에만 사용한다.
+- Stack Header에 화면명이 있으면 본문에 같은 대형 제목을 반복하지 않는다.
+- 기획에 없는 Gear/Setting Action을 추가하지 않는다.
+- 큰 `+` 문자만 단독 CTA로 배치하지 않는다.
+- Header Add, Bottom CTA, FAB를 한 화면에서 중복 사용하지 않는다.
+- 데이터가 없다고 화면을 빈 공간으로 남기지 않고 Empty State를 사용한다.
+- 모든 콘텐츠를 Card로 감싸지 않는다.
+- Screen padding 20, Section gap 24~32, Card padding 16을 기본으로 한다.
+
+## Home
+
+```text
+안녕하세요
+오늘도 보리의 건강을 함께 챙겨볼까요?
+
+[Photo]  보리
+         8살 · 고양이 · 여아
+
+다음 일정
+┌─────────────────────────────┐
+│ 종합백신              D-14 │
+│ 10월 20일                   │
+└─────────────────────────────┘
+
+오늘의 복약
+영양제                 21:00 ›
+
+이번 달 병원비
+125,000원
+
+최근 기록              전체보기
+10.02 건강검진               ›
+09.28 체중 4.3kg             ›
+09.15 예방접종               ›
+```
+
+Pet Photo 72~96, 이름 22 Bold. Next Schedule만 Highlight Card를 우선 사용한다. Recent Records는 Simple List이며 Shortcut Grid는 추가하지 않는다.
+
+## Records
+
+```text
+기록                         기록 추가
+
+[전체] [건강] [예방접종] [검진] →
+
+2026년 10월
+
+10.02  건강검진
+       정기 건강검진 완료      ›
+
+09.28  체중
+       4.3kg                  ›
+```
+
+우측 Action은 의미가 드러나는 Text Action을 우선한다. Filter는 Horizontal Chip, 목록은 월 단위 최신순 Simple List다. Empty State는 document icon + 설명 + `첫 기록 남기기`.
+
+## Schedule
+
+```text
+일정                         일정 추가
+
+[전체] [예방접종] [건강검진] [복약]
+
+오늘
+┌─────────────────────────────┐
+│ 영양제                      │
+│ 오늘 21:00             오늘 │
+└─────────────────────────────┘
+
+다가오는 일정
+┌─────────────────────────────┐
+│ 종합백신              D-14 │
+│ 10월 20일                   │
+└─────────────────────────────┘
+```
+
+Calendar Grid 대신 Upcoming List. D-day/오늘만 Coral로 강조하며 Type별 무지개 색을 사용하지 않는다.
+
+## Pets
+
+```text
+내 반려동물                    추가
+
+          [ Pet Photo ]
+
+             보리
+       8살 3개월 · 고양이
+              여아
+
+        [ 프로필 수정 ]
+
+건강 관리
+예방접종                      ›
+건강검진                      ›
+복약                          ›
+체중                          ›
+병원비                        ›
+```
+
+Pet Photo 96~120, 이름 22~28 Bold. 실제 사진이 화면의 감성적 중심이다. 관리 메뉴는 Neutral Icon + Label + Chevron의 Simple List다.
+
+## Medication — 복약 관리
+
+현재 복약 관리 화면은 아래 구조를 고정 기준으로 사용한다.
+
+```text
+<          복약 관리
+
+┌─────────────────────────────┐
+│ 오늘의 복약                 │
+│ 1개의 복약 일정이 있어요.    │
+│ 다음 복약은 오후 9:00이에요. │
+└─────────────────────────────┘
+
+복용 중                         1
+
+┌─────────────────────────────┐
+│ 영양제                      │
+│ 매일 · 오후 9:00            │
+│ 오늘 오후 9:00           ›  │
+└─────────────────────────────┘
+
+종료된 복약
+처방약
+9.01 - 9.07                  ›
+
+[          복약 추가          ]
+```
+
+Header 우측 Gear 없음. 본문에 `복약` 대형 제목을 반복하지 않고 큰 `+` 단독 아이콘도 사용하지 않는다. Today Summary는 Primary Light Highlight Card, Active Medication은 White Card, Ended Medication은 Simple List다. Empty State는 medkit icon + `복용 중인 약이 없어요.` + CTA.
+
+## Vaccination
+
+```text
+<          예방접종
+
+다음 예방접종
+┌─────────────────────────────┐
+│ 종합백신              D-14 │
+│ 10월 20일                   │
+└─────────────────────────────┘
+
+접종 기록
+09.15  종합백신              ›
+08.15  종합백신              ›
+
+[        예방접종 추가        ]
+```
+
+다음 일정은 Highlight Card, 과거 접종은 Simple List다.
+
+## Checkup
+
+```text
+<          건강검진
+
+다음 건강검진
+┌─────────────────────────────┐
+│ 정기 건강검진         D-32 │
+│ 11월 7일                    │
+└─────────────────────────────┘
+
+검진 기록
+10.02  정기 건강검진         ›
+06.10  혈액검사              ›
+
+[          검진 추가          ]
+```
+
+Vaccination과 동일한 Visual Family를 사용한다.
+
+## Weight
+
+```text
+<            체중
+
+현재 체중
+4.3 kg
+최근 측정 10월 1일
+
+[ Weight Trend Chart ]
+
+체중 기록
+10.01                     4.3kg
+09.01                     4.2kg
+08.01                     4.1kg
+
+[          체중 기록          ]
+```
+
+현재 체중은 28 Bold. Chart는 데이터가 충분할 때만 노출하며 History는 Simple List다.
+
+## Hospital Expense
+
+```text
+<           병원비
+
+이번 달 병원비
+125,000원
+10월
+
+병원비 내역
+10.02  OO동물병원        85,000원
+09.15  OO동물병원        40,000원
+
+[         병원비 기록         ]
+```
+
+금액은 28 Bold. Finance Dashboard처럼 확장하지 않고 Chart를 추가하지 않는다.
+
+## Pet Registration / Edit
+
+```text
+<        반려동물 등록
+
+        [  Photo  ]
+       [사진 추가]
+
+이름
+[ 보리                       ]
+
+종류
+[ 강아지 ] [ 고양이 ]
+
+생년월일 (선택)
+[ 2018. 03. 12              ]
+
+성별 (선택)
+[ 여아                       ]
+
+[          등록하기          ]
+```
+
+Photo 96 원형, Single Column, Field gap 20. Edit CTA는 `저장하기`다.
+
+## Common Record Form
+
+```text
+<          기록 추가
+
+날짜
+[ 2026.10.06                ]
+
+항목
+[                           ]
+
+병원 (선택)
+[                           ]
+
+메모 (선택)
+[                           ]
+
+[           저장하기         ]
+```
+
+Domain별 Field는 Product Plan을 따른다. Input 48+, Field gap 20, Save는 Full-width Coral이며 Floating Save Button은 사용하지 않는다.
+
+## Record Detail
+
+```text
+<          건강검진          수정
+
+2026년 10월 2일
+
+정기 건강검진
+
+병원
+OO동물병원
+
+메모
+특이사항 없음
+
+─────────────────────────────
+
+             삭제
+```
+
+Label/Value 중심이며 모든 값을 Card로 감싸지 않는다. 수정은 Header Text Action, 삭제는 하단 Danger Action이다.
+
+## Record Type Sheet
+
+```text
+╭─────────────────────────────╮
+│ ━━━━━                       │
+│ 어떤 기록을 남길까요?        │
+│ 건강 기록                  › │
+│ 예방접종                   › │
+│ 건강검진                   › │
+│ 복약                       › │
+│ 체중                       › │
+│ 병원비                     › │
+╰─────────────────────────────╯
+```
+
+White Surface, Top Radius 24, Row 52~56. Emoji 대신 Ionicons를 사용한다.
+
+## Pet Switch Sheet
+
+```text
+╭─────────────────────────────╮
+│ ━━━━━                       │
+│ 반려동물 선택               │
+│ [Photo] 보리              ✓ │
+│ [Photo] 모카                │
+│ + 반려동물 추가              │
+╰─────────────────────────────╯
+```
+
+Photo 40~48, 선택 상태만 Coral Accent를 사용한다.
+
+## Notification Permission
+
+```text
+        [bell icon]
+
+일정을 놓치지 않도록
+알림을 보내드릴까요?
+
+예방접종, 검진, 복약 시간을
+필요한 때 알려드려요.
+
+[       알림 받기       ]
+      나중에 할게요
+```
+
+OS Permission 전에 표시하고 앱 첫 실행 즉시 띄우지 않는다.
+
+---
+
+# 24. Claude Code Implementation Contract
+
+화면 구현 전 Product Scope → 이 문서의 Screen Blueprint → `design-guide.md`의 Token/Icon 규칙 순으로 확인한다.
+
+- Blueprint의 정보 순서와 Hierarchy를 임의 변경하지 않는다.
+- 새로운 Section/Action/Setting을 임의 추가하지 않는다.
+- Stack Header Title을 본문에 반복하지 않는다.
+- 단독 대형 `+` CTA를 만들지 않는다.
+- Warm Coral 외 새로운 Brand Color를 만들지 않는다.
+- 임의 Hex/Radius/Spacing을 추가하지 않는다.
+- 모든 것을 Card로 만들지 않는다.
+- 실제 Pet Photo가 있으면 Photo를 시각적 중심으로 사용한다.
+- 데이터가 없으면 Empty State를 구현한다.
+- Screenshot Reference가 있으면 Layout Density를 최대한 맞춘다.
+
+Self-check:
+
+```text
+[ ] Header 제목이 본문에서 중복되지 않았는가?
+[ ] 기획에 없는 Gear/+ 등의 Action이 생기지 않았는가?
+[ ] CTA가 어디에 있는지 즉시 이해되는가?
+[ ] Warm Coral이 강조 요소에만 사용되는가?
+[ ] White/Cream 면적이 충분한가?
+[ ] 화면 아래가 의미 없이 크게 비어 있지 않은가?
+[ ] Card가 과도하게 반복되지 않는가?
+[ ] Empty State가 정의되어 있는가?
+[ ] Touch Target 44 이상인가?
+[ ] Theme Token과 Ionicons를 사용했는가?
+```
+
+# Final Screen Direction
+
+> **Pawlog는 CRUD 관리 도구가 아니라, 사용자의 반려동물 사진과 건강 기록이 중심이 되는 따뜻한 개인 건강수첩이다.**
