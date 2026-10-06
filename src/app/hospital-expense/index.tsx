@@ -73,7 +73,9 @@ export default function HospitalExpenseScreen() {
                 <ListItem
                   key={expense.id}
                   title={`${expense.amount.toLocaleString('ko-KR')}원`}
-                  subtitle={[expense.spentAt, expense.hospitalName].filter(Boolean).join(' · ')}
+                  subtitle={[expense.spentAt, expense.hospitalName, expense.description]
+                    .filter(Boolean)
+                    .join(' · ')}
                   trailing={
                     <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
                   }

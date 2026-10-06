@@ -110,7 +110,7 @@ export default function RecordsScreen() {
         type: 'hospital-expense' as const,
         date: r.spentAt,
         title: `${r.amount.toLocaleString('ko-KR')}원`,
-        subtitle: r.hospitalName ?? undefined,
+        subtitle: [r.hospitalName, r.description].filter(Boolean).join(' · ') || undefined,
       })),
     ];
     all.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));

@@ -90,7 +90,12 @@ test('여러 종류의 기록이 필터로 좁혀지고, 최신 월부터 그룹
   const hospitalExpenseRepo = createHospitalExpenseRepository(
     mockDbInstance! as unknown as HospitalExpenseDb,
   );
-  await hospitalExpenseRepo.create({ petId: pet.id, spentAt: '2026-09-15', amount: 40000 });
+  await hospitalExpenseRepo.create({
+    petId: pet.id,
+    spentAt: '2026-09-15',
+    amount: 40000,
+    description: '예방접종',
+  });
 
   await render(<RecordsScreen />);
 
@@ -103,6 +108,7 @@ test('여러 종류의 기록이 필터로 좁혀지고, 최신 월부터 그룹
   await fireEvent.press(screen.getByLabelText('병원비'));
 
   expect(screen.getByText('40,000원')).toBeTruthy();
+  expect(screen.getByText(/예방접종/)).toBeTruthy();
   expect(screen.queryByText('건강 기록')).toBeNull();
   expect(screen.queryByText('종합백신')).toBeNull();
 });

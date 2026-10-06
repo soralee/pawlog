@@ -51,12 +51,14 @@ test('이번 달 합계와 목록이 보인다', async () => {
     spentAt: todayDateString(),
     amount: 40000,
     hospitalName: 'OO동물병원',
+    description: '예방접종',
   });
   await repository.create({
     petId: 'pet-total',
     spentAt: todayDateString(),
     amount: 85000,
     hospitalName: 'OO동물병원',
+    description: '건강검진',
   });
 
   await render(<HospitalExpenseScreen />);
@@ -64,4 +66,6 @@ test('이번 달 합계와 목록이 보인다', async () => {
   await waitFor(() => expect(screen.getByText('125,000원')).toBeTruthy());
   expect(screen.getByText('85,000원')).toBeTruthy();
   expect(screen.getByText('40,000원')).toBeTruthy();
+  expect(screen.getByText(/건강검진/)).toBeTruthy();
+  expect(screen.getByText(/예방접종/)).toBeTruthy();
 });
