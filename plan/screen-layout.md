@@ -141,7 +141,7 @@ Single Column Form을 기본으로 한다.
 
 ## 7. Home
 
-Home은 현재 선택된 Pet 기준이다.
+Home은 특정 Pet 선택에 종속되지 않고 등록된 모든 Pet의 현재 상태를 요약한다.
 
 ### Layout Order
 
@@ -251,7 +251,7 @@ Horizontal Chip:
 
 - 최신순
 - 월 단위 Group
-- 현재 선택된 Pet 기준
+- Pet Filter 기준. 기본값 `전체`에서는 모든 Pet을 통합
 
 예:
 
@@ -381,14 +381,14 @@ Pet Photo를 충분히 크게 사용한다.
 
 ### Multi-pet
 
-여러 Pet이 있는 경우:
-
-- 현재 선택된 Pet이 항상 명확해야 한다.
-- Pet Switch UI를 제공한다.
-- Records/Schedule/Home은 선택된 Pet 기준으로 변경된다.
-- 등록 Form에서는 대상 Pet을 명확히 표시한다.
-
-Pet 선택처럼 짧은 선택 UI는 Bottom Sheet 사용을 권장한다.
+- `내 반려동물` Tab은 등록된 모든 Pet을 보여주는 Hub에서 시작한다.
+- Pet을 선택하면 해당 Pet의 Profile과 건강 기록/예방접종/검진/복약/체중/병원비를 개별 관리한다.
+- Home은 모든 Pet을 Aggregate하며 Pet 선택으로 전체 화면을 전환하지 않는다.
+- Records/Schedule은 `전체` 또는 특정 Pet으로 필터링한다.
+- 전체 보기 Row에는 Pet 이름 또는 작은 사진을 표시한다.
+- 기록/일정 생성 시 대상 Pet은 필수이며 누구의 데이터인지 명확히 표시한다.
+- Pet Detail에서 생성하면 해당 Pet을 기본 대상값으로 전달한다.
+- Pet이 한 마리면 불필요한 Pet Filter/Switch UI를 숨긴다.
 
 ---
 
@@ -1042,6 +1042,167 @@ Self-check:
 [ ] Touch Target 44 이상인가?
 [ ] Theme Token과 Ionicons를 사용했는가?
 ```
+
+
+---
+
+# 25. Multi-pet Tab Requirements
+
+Multi-pet은 MVP의 기본 UX다. `selectedPetId` 하나로 Home/Records/Schedule 전체를 동시에 전환하는 구조를 사용하지 않는다.
+
+## 25.1 Home — All Pets Summary
+
+```text
+오늘도 아이들의 건강을 챙겨볼까요?
+
+우리 아이들                         + 추가
+
+[보리 사진]       [모카 사진]
+보리              모카
+8살 · 고양이      4살 · 강아지
+D-14 예방접종      오늘 복약 21:00
+
+다가오는 일정                       전체보기
+[보리] 종합백신              D-14
+       10월 20일
+[모카] 심장사상충             오늘
+       오늘 21:00
+
+오늘의 복약
+[모카] 영양제 · 21:00              ›
+
+이번 달 병원비
+전체                      185,000원
+보리                       85,000원
+모카                      100,000원
+
+최근 기록                           전체보기
+[보리] 건강검진 · 10.02            ›
+[모카] 체중 6.2kg · 10.01          ›
+```
+
+- Home은 모든 Pet의 Aggregate Summary다.
+- Pet Summary를 누르면 해당 Pet Detail로 이동한다.
+- 일정/복약/최근 기록에는 대상 Pet을 표시한다.
+- Pet이 한 마리면 병원비 Pet별 Breakdown 등 중복 UI를 숨긴다.
+
+## 25.2 Records — All / Pet-specific
+
+```text
+기록                         기록 추가
+
+반려동물  [전체] [보리] [모카]
+종류      [전체] [건강] [예방접종] [검진] →
+
+2026년 10월
+10.02  [보리] 건강검진            ›
+10.01  [모카] 체중 6.2kg          ›
+```
+
+- Pet Filter와 Record Type Filter는 별개다.
+- Pet Filter 기본값은 `전체`.
+- 전체 보기에서는 모든 Row에 Pet 이름 또는 작은 Photo를 표시한다.
+- 특정 Pet 선택 시 해당 Pet 데이터만 보여준다.
+- Pet이 한 마리면 Pet Filter를 숨긴다.
+- 기록 추가 시 대상 Pet은 필수다.
+- 전체 Context에서 추가하면 Pet을 선택하고, Pet Detail에서 추가하면 해당 Pet을 기본값으로 사용한다.
+
+## 25.3 Schedule — All / Pet-specific
+
+```text
+일정                         일정 추가
+
+반려동물  [전체] [보리] [모카]
+종류      [전체] [예방접종] [건강검진] [복약]
+
+오늘
+[모카] 영양제 · 21:00             오늘
+
+다가오는 일정
+[보리] 종합백신 · 10월 20일       D-14
+```
+
+- Pet Filter 기본값은 `전체`.
+- 전체 보기의 모든 일정에 대상 Pet을 표시한다.
+- Pet Filter와 Schedule Type Filter를 함께 사용할 수 있다.
+- 정렬은 Filter와 무관하게 가까운 일정 우선이다.
+- 새 일정 생성 시 대상 Pet은 필수다.
+- 반복 복약 역시 Pet별로 귀속된다.
+
+## 25.4 Pets — Multi-pet Hub
+
+```text
+내 반려동물                    추가
+
+우리 아이들
+
+┌─────────────────────────────┐
+│ [Photo] 보리                │
+│ 8살 · 고양이             ›  │
+│ 다음 일정 · 종합백신 D-14   │
+└─────────────────────────────┘
+
+┌─────────────────────────────┐
+│ [Photo] 모카                │
+│ 4살 · 강아지             ›  │
+│ 오늘 복약 · 21:00           │
+└─────────────────────────────┘
+```
+
+- Tab 첫 화면은 특정 Pet Profile이 아니라 등록된 Pet 전체를 보여주는 Hub다.
+- Pet Card에는 Photo, 이름, 기본 정보와 가장 가까운 건강 Action을 보여준다.
+- `추가`로 새 Pet을 등록한다.
+- Pet Card를 누르면 Pet Detail로 이동한다.
+
+### Pet Detail
+
+```text
+          [ Pet Photo ]
+
+             보리
+       8살 3개월 · 고양이
+              여아
+
+        [ 프로필 수정 ]
+
+건강 관리
+건강 기록                    ›
+예방접종                      ›
+건강검진                      ›
+복약                          ›
+체중                          ›
+병원비                        ›
+```
+
+- Pet Detail 이하 화면은 해당 Pet으로 Scope한다.
+- Domain 화면에서 생성한 데이터는 해당 Pet에 귀속한다.
+- Form 상단 또는 Field에서 대상 Pet을 명확히 보여준다.
+- 다른 Pet으로 바꾸기 위해 앱 전체 Context를 암묵적으로 변경하지 않는다.
+
+## 25.5 Data Ownership Rule
+
+모든 아래 데이터는 반드시 하나의 `petId`에 귀속한다.
+
+```text
+health_records
+vaccinations
+checkups
+medications
+hospital_expenses
+weight_records
+reminders
+```
+
+Aggregate 화면은 여러 Pet의 데이터를 Query/Service Layer에서 합쳐 표현한다. Pet별 원본 데이터의 소유 관계를 변경하지 않는다.
+
+## 25.6 Single-pet Graceful Mode
+
+등록된 Pet이 한 마리일 때도 동일한 구조를 사용하되 불필요한 Multi-pet UI를 숨긴다.
+
+- Records/Schedule의 Pet Filter 숨김
+- Home 병원비의 전체/개별 중복 Breakdown 숨김
+- 기록/일정 Form의 Pet 선택 과정은 생략 가능하지만 대상 Pet 이름은 확인 가능하게 표시
+
 
 # Final Screen Direction
 
