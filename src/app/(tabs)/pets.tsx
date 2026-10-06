@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -7,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ListItem } from '@/components/list-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import {
   createPetRepository,
   type CreatePetInput,
@@ -59,7 +60,7 @@ export default function PetsScreen() {
 
         <ListItem
           title="복약 관리"
-          trailing={<ThemedText themeColor="textSecondary">{'>'}</ThemedText>}
+          trailing={<Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />}
           onPress={() => router.push('/medication')}
         />
 

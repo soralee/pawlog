@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
@@ -8,7 +9,7 @@ import { EmptyState } from '@/components/empty-state';
 import { ListItem } from '@/components/list-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import {
   createMedicationRepository,
   type Medication,
@@ -44,7 +45,7 @@ export default function MedicationScreen() {
         <ThemedView style={styles.header}>
           <ThemedText type="title">복약</ThemedText>
           <Pressable accessibilityLabel="복약 추가" onPress={() => router.push('/medication/new')}>
-            <ThemedText type="title">+</ThemedText>
+            <Ionicons name="add" size={24} color={Colors.light.primary} />
           </Pressable>
         </ThemedView>
 
@@ -65,7 +66,9 @@ export default function MedicationScreen() {
                 key={medication.id}
                 title={medication.name}
                 subtitle={`${medication.frequency} ${medication.time}`}
-                trailing={<ThemedText themeColor="textSecondary">{'>'}</ThemedText>}
+                trailing={
+                  <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+                }
                 onPress={() => router.push(`/medication/${medication.id}`)}
               />
             ))}
@@ -80,7 +83,9 @@ export default function MedicationScreen() {
                     key={medication.id}
                     title={medication.name}
                     subtitle={`${medication.frequency} ${medication.time}`}
-                    trailing={<ThemedText themeColor="textSecondary">{'>'}</ThemedText>}
+                    trailing={
+                      <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+                    }
                     onPress={() => router.push(`/medication/${medication.id}`)}
                   />
                 ))}

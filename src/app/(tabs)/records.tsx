@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -154,7 +155,7 @@ export default function RecordsScreen() {
           <ThemedText type="title">기록</ThemedText>
           {hasAnyPet ? (
             <Pressable accessibilityLabel="기록 추가" onPress={() => setSheetVisible(true)}>
-              <ThemedText type="title">+</ThemedText>
+              <Ionicons name="add" size={24} color={Colors.light.primary} />
             </Pressable>
           ) : null}
         </ThemedView>
@@ -199,7 +200,13 @@ export default function RecordsScreen() {
                         key={entry.id}
                         title={entry.title}
                         subtitle={subtitleFor(entry)}
-                        trailing={<ThemedText themeColor="textSecondary">{'>'}</ThemedText>}
+                        trailing={
+                          <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color={Colors.light.textMuted}
+                          />
+                        }
                         onPress={() => openDetail(entry)}
                       />
                     ))}

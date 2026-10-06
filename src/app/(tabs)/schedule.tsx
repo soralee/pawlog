@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -115,7 +116,7 @@ export default function ScheduleScreen() {
           <ThemedText type="title">일정</ThemedText>
           {hasAnyPet ? (
             <Pressable accessibilityLabel="일정 추가" onPress={() => setSheetVisible(true)}>
-              <ThemedText type="title">+</ThemedText>
+              <Ionicons name="add" size={24} color={Colors.light.primary} />
             </Pressable>
           ) : null}
         </ThemedView>
