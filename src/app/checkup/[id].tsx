@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -82,7 +82,19 @@ export default function CheckupDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: '건강검진' }} />
+      <Stack.Screen
+        options={{
+          title: '건강검진',
+          headerRight: () =>
+            record && !editing ? (
+              <Pressable accessibilityLabel="수정" onPress={() => setEditing(true)}>
+                <ThemedText type="default" themeColor="primary">
+                  수정
+                </ThemedText>
+              </Pressable>
+            ) : null,
+        }}
+      />
       <SafeAreaView style={styles.safeArea}>
         {record && editing && (
           <>
@@ -130,9 +142,6 @@ export default function CheckupDetailScreen() {
               <ThemedText type="default">{record.hospitalName}</ThemedText>
             ) : null}
             {record.memo ? <ThemedText type="default">{record.memo}</ThemedText> : null}
-            <Button variant="secondary" onPress={() => setEditing(true)}>
-              수정
-            </Button>
           </>
         )}
         <Button variant="destructive" onPress={() => setConfirmVisible(true)}>

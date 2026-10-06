@@ -22,7 +22,11 @@ jest.mock('expo-sqlite', () => ({
 const mockBack = jest.fn();
 let mockParamId = 'record-1';
 jest.mock('expo-router', () => ({
-  Stack: { Screen: () => null },
+  // 헤더 우측의 "수정" Text Action(options.headerRight)도 테스트에서 누를 수 있어야 한다.
+  Stack: {
+    Screen: ({ options }: { options?: { headerRight?: () => unknown } }) =>
+      options?.headerRight ? options.headerRight() : null,
+  },
   useRouter: () => ({ back: mockBack }),
   useLocalSearchParams: () => ({ id: mockParamId }),
 }));
