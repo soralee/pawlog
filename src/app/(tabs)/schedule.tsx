@@ -102,11 +102,22 @@ export default function ScheduleScreen() {
   const groups = useMemo(() => groupByMonthAndDay(filtered), [filtered]);
 
   function openNew(type: ScheduleType) {
-    router.push(type === 'vaccination' ? '/vaccination/new' : '/checkup/new');
+    // TODO(records-schedule-multi-pet): 펫이 2마리 이상이면 펫 선택을 먼저 띄워야 한다.
+    if (!selectedPetId) return;
+    router.push(
+      type === 'vaccination'
+        ? `/pets/${selectedPetId}/vaccination/new`
+        : `/pets/${selectedPetId}/checkup/new`,
+    );
   }
 
   function openDetail(entry: ScheduleEntry) {
-    router.push(entry.type === 'vaccination' ? `/vaccination/${entry.id}` : `/checkup/${entry.id}`);
+    if (!selectedPetId) return;
+    router.push(
+      entry.type === 'vaccination'
+        ? `/pets/${selectedPetId}/vaccination/${entry.id}`
+        : `/pets/${selectedPetId}/checkup/${entry.id}`,
+    );
   }
 
   return (

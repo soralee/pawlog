@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -8,33 +8,31 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { createCheckupRepository } from '@/db/repositories/checkup.repository';
-import { useAppStore } from '@/stores/app.store';
+import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
 import { isValidDateString, todayDateString } from '@/utils/date';
 
-export default function NewCheckupScreen() {
+export default function NewVaccinationScreen() {
   const db = useSQLiteContext();
-  const repository = useMemo(() => createCheckupRepository(db), [db]);
-  const petId = useAppStore((state) => state.selectedPetId);
+  const repository = useMemo(() => createVaccinationRepository(db), [db]);
+  const { petId } = useLocalSearchParams<{ petId: string }>();
   const router = useRouter();
 
-  const [checkupType, setCheckupType] = useState('');
-  const [checkupTypeError, setCheckupTypeError] = useState('');
-  const [checkedAt, setCheckedAt] = useState(todayDateString());
-  const [checkedAtError, setCheckedAtError] = useState('');
+  const [vaccineName, setVaccineName] = useState('');
+  const [vaccineNameError, setVaccineNameError] = useState('');
+  const [vaccinatedAt, setVaccinatedAt] = useState(todayDateString());
+  const [vaccinatedAtError, setVaccinatedAtError] = useState('');
   const [nextDueAt, setNextDueAt] = useState('');
   const [nextDueAtError, setNextDueAtError] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [memo, setMemo] = useState('');
 
   async function handleSave() {
-    if (!petId) return;
-    if (!checkupType.trim()) {
-      setCheckupTypeError('검진 종류를 입력해주세요');
+    if (!vaccineName.trim()) {
+      setVaccineNameError('백신 이름을 입력해주세요');
       return;
     }
-    if (!isValidDateString(checkedAt.trim())) {
-      setCheckedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+    if (!isValidDateString(vaccinatedAt.trim())) {
+      setVaccinatedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
     if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
@@ -43,8 +41,8 @@ export default function NewCheckupScreen() {
     }
     await repository.create({
       petId,
-      checkupType,
-      checkedAt: checkedAt.trim(),
+      vaccineName,
+      vaccinatedAt: vaccinatedAt.trim(),
       nextDueAt: nextDueAt.trim() || null,
       hospitalName: hospitalName.trim() || null,
       memo: memo.trim() || null,
@@ -54,28 +52,28 @@ export default function NewCheckupScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: '건강검진' }} />
+      <Stack.Screen options={{ title: '예방접종' }} />
       <SafeAreaView style={styles.safeArea}>
         <Input
-          label="검진 종류"
-          value={checkupType}
+          label="백신 이름"
+          value={vaccineName}
           onChangeText={(text) => {
-            setCheckupType(text);
-            setCheckupTypeError('');
+            setVaccineName(text);
+            setVaccineNameError('');
           }}
-          error={checkupTypeError}
+          error={vaccineNameError}
         />
         <Input
-          label="검진일"
-          value={checkedAt}
+          label="접종일"
+          value={vaccinatedAt}
           onChangeText={(text) => {
-            setCheckedAt(text);
-            setCheckedAtError('');
+            setVaccinatedAt(text);
+            setVaccinatedAtError('');
           }}
-          error={checkedAtError}
+          error={vaccinatedAtError}
         />
         <Input
-          label="다음 검진 예정일"
+          label="다음 접종 예정일"
           optional
           value={nextDueAt}
           onChangeText={(text) => {

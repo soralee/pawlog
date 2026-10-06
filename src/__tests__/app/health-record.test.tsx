@@ -3,13 +3,12 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 // jest.mock 팩토리는 호이스팅되어 "mock"으로 시작하는 이름의 외부 변수만 참조할 수 있다.
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
 
-import NewHealthRecordScreen from '@/app/health-record/new';
-import HealthRecordDetailScreen from '@/app/health-record/[id]';
+import NewHealthRecordScreen from '@/app/pets/[petId]/health-record/new';
+import HealthRecordDetailScreen from '@/app/pets/[petId]/health-record/[id]';
 import {
   createHealthRecordRepository,
   type HealthRecordDb,
 } from '@/db/repositories/health-record.repository';
-import { useAppStore } from '@/stores/app.store';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -21,6 +20,7 @@ jest.mock('expo-sqlite', () => ({
 
 const mockBack = jest.fn();
 let mockParamId = 'record-1';
+let mockPetId = 'pet-1';
 jest.mock('expo-router', () => ({
   // 헤더 우측의 "수정" Text Action(options.headerRight)도 테스트에서 누를 수 있어야 한다.
   Stack: {
@@ -28,11 +28,11 @@ jest.mock('expo-router', () => ({
       options?.headerRight ? options.headerRight() : null,
   },
   useRouter: () => ({ back: mockBack }),
-  useLocalSearchParams: () => ({ id: mockParamId }),
+  useLocalSearchParams: () => ({ id: mockParamId, petId: mockPetId }),
 }));
 
 test('등록 화면 — 유효성 검사 후 저장하면 repository에 반영되고 뒤로 간다', async () => {
-  useAppStore.setState({ selectedPetId: 'pet-1' });
+  mockPetId = 'pet-1';
   mockBack.mockClear();
 
   await render(<NewHealthRecordScreen />);

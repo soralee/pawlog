@@ -1,11 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, TextInput } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { z } from 'zod';
 
+import { Button } from '@/components/button';
+import { Input } from '@/components/input';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Radius, Spacing } from '@/constants/theme';
 import type { CreatePetInput, Gender, Species } from '@/db/repositories/pet.repository';
 import { isValidDateString } from '@/utils/date';
 
@@ -22,6 +24,8 @@ const petFormSchema = z.object({
 type PetFormValues = z.infer<typeof petFormSchema>;
 
 type PetFormProps = {
+  initialValues?: PetFormValues;
+  submitLabel?: string;
   onSubmit: (input: CreatePetInput) => void;
 };
 
@@ -35,15 +39,15 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'female', label: '여아' },
 ];
 
-export function PetForm({ onSubmit }: PetFormProps) {
+export function PetForm({ initialValues, submitLabel = '등록', onSubmit }: PetFormProps) {
   const { control, handleSubmit, formState, reset } = useForm<PetFormValues>({
     resolver: zodResolver(petFormSchema),
-    defaultValues: { name: '', birthDate: '', species: 'dog', gender: 'male' },
+    defaultValues: initialValues ?? { name: '', birthDate: '', species: 'dog', gender: 'male' },
   });
 
   const submit = handleSubmit((values) => {
     onSubmit(values);
-    reset();
+    if (!initialValues) reset();
   });
 
   return (
@@ -52,39 +56,28 @@ export function PetForm({ onSubmit }: PetFormProps) {
         control={control}
         name="name"
         render={({ field }) => (
-          <TextInput
-            accessibilityLabel="이름"
-            placeholder="이름"
+          <Input
+            label="이름"
             value={field.value}
             onChangeText={field.onChange}
-            style={styles.input}
+            error={formState.errors.name?.message}
           />
         )}
       />
-      {formState.errors.name && (
-        <ThemedText type="small" themeColor="textSecondary">
-          {formState.errors.name.message}
-        </ThemedText>
-      )}
 
       <Controller
         control={control}
         name="birthDate"
         render={({ field }) => (
-          <TextInput
-            accessibilityLabel="생년월일"
-            placeholder="생년월일 (YYYY-MM-DD)"
+          <Input
+            label="생년월일"
+            placeholder="YYYY-MM-DD"
             value={field.value}
             onChangeText={field.onChange}
-            style={styles.input}
+            error={formState.errors.birthDate?.message}
           />
         )}
       />
-      {formState.errors.birthDate && (
-        <ThemedText type="small" themeColor="textSecondary">
-          {formState.errors.birthDate.message}
-        </ThemedText>
-      )}
 
       <ThemedView style={styles.optionRow}>
         {SPECIES_OPTIONS.map((option) => (
@@ -130,22 +123,14 @@ export function PetForm({ onSubmit }: PetFormProps) {
         ))}
       </ThemedView>
 
-      <Pressable accessibilityLabel="등록" onPress={submit} style={styles.submitButton}>
-        <ThemedText type="smallBold">등록</ThemedText>
-      </Pressable>
+      <Button onPress={submit}>{submitLabel}</Button>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   form: {
-    gap: Spacing.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: Spacing.xxs,
-    padding: Spacing.xs,
+    gap: Spacing.sm,
   },
   optionRow: {
     flexDirection: 'row',
@@ -154,17 +139,12 @@ const styles = StyleSheet.create({
   optionButton: {
     paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.md,
-    borderRadius: Spacing.md,
+    borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.light.border,
   },
   optionButtonSelected: {
-    borderColor: '#3c87f7',
-  },
-  submitButton: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    borderRadius: Spacing.xs,
-    backgroundColor: '#3c87f7',
+    borderColor: Colors.light.primary,
+    backgroundColor: Colors.light.primaryLight,
   },
 });

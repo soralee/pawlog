@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -9,13 +9,12 @@ import { Input } from '@/components/input';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { createHospitalExpenseRepository } from '@/db/repositories/hospital-expense.repository';
-import { useAppStore } from '@/stores/app.store';
 import { isValidDateString, todayDateString } from '@/utils/date';
 
 export default function NewHospitalExpenseScreen() {
   const db = useSQLiteContext();
   const repository = useMemo(() => createHospitalExpenseRepository(db), [db]);
-  const petId = useAppStore((state) => state.selectedPetId);
+  const { petId } = useLocalSearchParams<{ petId: string }>();
   const router = useRouter();
 
   const [spentAt, setSpentAt] = useState(todayDateString());
@@ -27,7 +26,6 @@ export default function NewHospitalExpenseScreen() {
   const [memo, setMemo] = useState('');
 
   async function handleSave() {
-    if (!petId) return;
     if (!isValidDateString(spentAt.trim())) {
       setSpentAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;

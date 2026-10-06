@@ -2,10 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
 
-import NewCheckupScreen from '@/app/checkup/new';
-import CheckupDetailScreen from '@/app/checkup/[id]';
+import NewCheckupScreen from '@/app/pets/[petId]/checkup/new';
+import CheckupDetailScreen from '@/app/pets/[petId]/checkup/[id]';
 import { createCheckupRepository, type CheckupDb } from '@/db/repositories/checkup.repository';
-import { useAppStore } from '@/stores/app.store';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -17,6 +16,7 @@ jest.mock('expo-sqlite', () => ({
 
 const mockBack = jest.fn();
 let mockParamId = 'record-1';
+const mockPetId = 'pet-1';
 jest.mock('expo-router', () => ({
   // 헤더 우측의 "수정" Text Action(options.headerRight)도 테스트에서 누를 수 있어야 한다.
   Stack: {
@@ -24,11 +24,10 @@ jest.mock('expo-router', () => ({
       options?.headerRight ? options.headerRight() : null,
   },
   useRouter: () => ({ back: mockBack }),
-  useLocalSearchParams: () => ({ id: mockParamId }),
+  useLocalSearchParams: () => ({ id: mockParamId, petId: mockPetId }),
 }));
 
 test('등록 화면 — 유효성 검사 후 저장하면 repository에 반영되고 뒤로 간다', async () => {
-  useAppStore.setState({ selectedPetId: 'pet-1' });
   mockBack.mockClear();
 
   await render(<NewCheckupScreen />);

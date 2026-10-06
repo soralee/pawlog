@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
@@ -15,19 +15,17 @@ import {
   type Medication,
 } from '@/db/repositories/medication.repository';
 import { splitMedications } from '@/features/medication/split-medications';
-import { useAppStore } from '@/stores/app.store';
 
 export default function MedicationScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const selectedPetId = useAppStore((state) => state.selectedPetId);
+  const { petId } = useLocalSearchParams<{ petId: string }>();
 
   const [medications, setMedications] = useState<Medication[]>([]);
 
   const load = useCallback(async () => {
-    if (!selectedPetId) return;
-    setMedications(await createMedicationRepository(db).listByPet(selectedPetId));
-  }, [db, selectedPetId]);
+    setMedications(await createMedicationRepository(db).listByPet(petId));
+  }, [db, petId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,7 +42,10 @@ export default function MedicationScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.header}>
           <ThemedText type="title">복약</ThemedText>
-          <Pressable accessibilityLabel="복약 추가" onPress={() => router.push('/medication/new')}>
+          <Pressable
+            accessibilityLabel="복약 추가"
+            onPress={() => router.push(`/pets/${petId}/medication/new`)}
+          >
             <Ionicons name="add" size={24} color={Colors.light.primary} />
           </Pressable>
         </ThemedView>
@@ -54,7 +55,7 @@ export default function MedicationScreen() {
             title="등록된 복약이 없어요."
             description="복용 중인 약이나 영양제를 등록해 보세요."
             ctaLabel="복약 추가하기"
-            onPressCta={() => router.push('/medication/new')}
+            onPressCta={() => router.push(`/pets/${petId}/medication/new`)}
           />
         ) : (
           <ScrollView>
@@ -69,7 +70,7 @@ export default function MedicationScreen() {
                 trailing={
                   <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
                 }
-                onPress={() => router.push(`/medication/${medication.id}`)}
+                onPress={() => router.push(`/pets/${petId}/medication/${medication.id}`)}
               />
             ))}
 
@@ -86,7 +87,7 @@ export default function MedicationScreen() {
                     trailing={
                       <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
                     }
-                    onPress={() => router.push(`/medication/${medication.id}`)}
+                    onPress={() => router.push(`/pets/${petId}/medication/${medication.id}`)}
                   />
                 ))}
               </>

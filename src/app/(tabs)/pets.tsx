@@ -1,87 +1,110 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, StyleSheet } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ListItem } from '@/components/list-item';
+import { Card } from '@/components/card';
+import { EmptyState } from '@/components/empty-state';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
-import {
-  createPetRepository,
-  type CreatePetInput,
-  type Pet,
-} from '@/db/repositories/pet.repository';
-import { PetForm } from '@/features/pets/pet-form';
-import { formatAge } from '@/utils/date';
+import { createCheckupRepository } from '@/db/repositories/checkup.repository';
+import { createPetRepository, type Pet } from '@/db/repositories/pet.repository';
+import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
+import { aggregateSchedule } from '@/features/schedule/aggregate-schedule';
+import { daysUntil, formatAge } from '@/utils/date';
+
+type PetCardData = { pet: Pet; nextScheduleLabel: string | null };
 
 export default function PetsScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const repository = useMemo(() => createPetRepository(db), [db]);
-  const [pets, setPets] = useState<Pet[]>([]);
 
-  const refresh = useCallback(async () => {
-    setPets(await repository.listPets());
-  }, [repository]);
+  const [cards, setCards] = useState<PetCardData[] | null>(null);
 
-  useEffect(() => {
-    // SQLite(외부 시스템)에서 목록을 읽어와 동기화하는 마운트 시점 fetch다 — 이 규칙이
-    // 막으려는 "props/상태를 복제하는 setState"가 아니므로 예외 처리한다.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refresh();
-  }, [refresh]);
+  const load = useCallback(async () => {
+    const pets = await createPetRepository(db).listPets();
+    const withSchedule = await Promise.all(
+      pets.map(async (pet) => {
+        const [vaccinations, checkups] = await Promise.all([
+          createVaccinationRepository(db).listByPet(pet.id),
+          createCheckupRepository(db).listByPet(pet.id),
+        ]);
+        const next = aggregateSchedule(vaccinations, checkups)[0];
+        const nextScheduleLabel = next
+          ? `다음 일정 · ${next.title} D-${daysUntil(next.date)}`
+          : null;
+        return { pet, nextScheduleLabel };
+      }),
+    );
+    setCards(withSchedule);
+  }, [db]);
 
-  async function handleCreate(input: CreatePetInput) {
-    await repository.createPet(input);
-    await refresh();
-  }
+  useFocusEffect(
+    useCallback(() => {
+      // 등록/수정/삭제 후 돌아왔을 때 최신 목록을 반영해야 한다.
+      void load();
+    }, [load]),
+  );
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="title">내 반려동물</ThemedText>
+        <ThemedView style={styles.header}>
+          <ThemedText type="title">내 반려동물</ThemedText>
+          <Pressable accessibilityLabel="반려동물 추가" onPress={() => router.push('/pets/new')}>
+            <Ionicons name="add" size={24} color={Colors.light.primary} />
+          </Pressable>
+        </ThemedView>
 
-        <FlatList
-          data={pets}
-          keyExtractor={(pet) => pet.id}
-          ListEmptyComponent={<ThemedText type="default">등록된 반려동물이 없어요.</ThemedText>}
-          renderItem={({ item }) => (
-            <ThemedView type="surface" style={styles.petRow}>
-              <ThemedText type="default">{item.name}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {formatAge(new Date(item.birthDate))}
-              </ThemedText>
-            </ThemedView>
-          )}
-        />
+        {cards && cards.length === 0 && (
+          <EmptyState
+            title="등록된 반려동물이 없어요."
+            description="첫 반려동물을 등록해 보세요."
+            ctaLabel="반려동물 등록하기"
+            onPressCta={() => router.push('/pets/new')}
+          />
+        )}
 
-        <ListItem
-          title="복약 관리"
-          trailing={<Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />}
-          onPress={() => router.push('/medication')}
-        />
-
-        <PetForm onSubmit={handleCreate} />
+        {cards && cards.length > 0 && (
+          <ScrollView contentContainerStyle={styles.list}>
+            {cards.map(({ pet, nextScheduleLabel }) => (
+              <Pressable
+                key={pet.id}
+                accessibilityLabel={pet.name}
+                onPress={() => router.push(`/pets/${pet.id}`)}
+              >
+                <Card style={styles.card}>
+                  <ThemedText type="heading">{pet.name}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {formatAge(new Date(pet.birthDate))} ·{' '}
+                    {pet.species === 'dog' ? '강아지' : '고양이'}
+                  </ThemedText>
+                  {nextScheduleLabel ? (
+                    <ThemedText type="small" themeColor="primary">
+                      {nextScheduleLabel}
+                    </ThemedText>
+                  ) : null}
+                </Card>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
       </SafeAreaView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  safeArea: { flex: 1, paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
-  petRow: {
-    padding: Spacing.xs,
-    borderRadius: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
+  list: { gap: Spacing.sm },
+  card: { gap: Spacing.xxs },
 });

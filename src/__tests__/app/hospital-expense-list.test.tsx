@@ -4,12 +4,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
 import { useEffect as mockUseEffect } from 'react';
 
-import HospitalExpenseScreen from '@/app/hospital-expense/index';
+import HospitalExpenseScreen from '@/app/pets/[petId]/hospital-expense/index';
 import {
   createHospitalExpenseRepository,
   type HospitalExpenseDb,
 } from '@/db/repositories/hospital-expense.repository';
-import { useAppStore } from '@/stores/app.store';
 import { todayDateString } from '@/utils/date';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
@@ -21,27 +20,29 @@ jest.mock('expo-sqlite', () => ({
 }));
 
 const mockPush = jest.fn();
+let mockPetId = 'pet-empty';
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useRouter: () => ({ push: mockPush }),
   useFocusEffect: (callback: () => void) => mockUseEffect(callback, [callback]),
+  useLocalSearchParams: () => ({ petId: mockPetId }),
 }));
 
 afterEach(cleanup);
 
 test('병원비가 없으면 EmptyState가 뜨고, CTA를 누르면 등록 화면으로 이동한다', async () => {
-  useAppStore.setState({ selectedPetId: 'pet-empty' });
+  mockPetId = 'pet-empty';
 
   await render(<HospitalExpenseScreen />);
 
   expect(await screen.findByText('등록된 병원비가 없어요.')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('병원비 추가하기'));
-  expect(mockPush).toHaveBeenCalledWith('/hospital-expense/new');
+  expect(mockPush).toHaveBeenCalledWith('/pets/pet-empty/hospital-expense/new');
 });
 
 test('이번 달 합계와 목록이 보인다', async () => {
-  useAppStore.setState({ selectedPetId: 'pet-total' });
+  mockPetId = 'pet-total';
 
   const repository = createHospitalExpenseRepository(
     mockDbInstance! as unknown as HospitalExpenseDb,

@@ -4,12 +4,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
 import { useEffect as mockUseEffect } from 'react';
 
-import MedicationScreen from '@/app/medication/index';
+import MedicationScreen from '@/app/pets/[petId]/medication/index';
 import {
   createMedicationRepository,
   type MedicationDb,
 } from '@/db/repositories/medication.repository';
-import { useAppStore } from '@/stores/app.store';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -20,27 +19,29 @@ jest.mock('expo-sqlite', () => ({
 }));
 
 const mockPush = jest.fn();
+let mockPetId = 'pet-empty';
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   useRouter: () => ({ push: mockPush }),
   useFocusEffect: (callback: () => void) => mockUseEffect(callback, [callback]),
+  useLocalSearchParams: () => ({ petId: mockPetId }),
 }));
 
 afterEach(cleanup);
 
 test('복약이 없으면 EmptyState가 뜨고, CTA를 누르면 등록 화면으로 이동한다', async () => {
-  useAppStore.setState({ selectedPetId: 'pet-empty' });
+  mockPetId = 'pet-empty';
 
   await render(<MedicationScreen />);
 
   expect(await screen.findByText('등록된 복약이 없어요.')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('복약 추가하기'));
-  expect(mockPush).toHaveBeenCalledWith('/medication/new');
+  expect(mockPush).toHaveBeenCalledWith('/pets/pet-empty/medication/new');
 });
 
 test('복용 중/종료된 복약이 분리되어 보인다', async () => {
-  useAppStore.setState({ selectedPetId: 'pet-split' });
+  mockPetId = 'pet-split';
 
   const repository = createMedicationRepository(mockDbInstance! as unknown as MedicationDb);
   await repository.create({

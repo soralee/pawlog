@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 // jest.mock 팩토리는 호이스팅되어 "mock"으로 시작하는 이름의 외부 변수만 참조할 수 있다.
-// 실제 SQLiteProvider처럼 렌더마다 같은 db 인스턴스를 돌려주도록 첫 호출 때 한 번만 만든다
-// (매번 새로 만들면 등록 직후 재렌더 때 데이터가 든 db가 아니라 빈 db를 보게 된다).
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
+import { useEffect as mockUseEffect } from 'react';
 
 import PetsScreen from '@/app/(tabs)/pets';
+import { createPetRepository, type PetDb } from '@/db/repositories/pet.repository';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -18,25 +18,33 @@ jest.mock('expo-sqlite', () => ({
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
+  useFocusEffect: (callback: () => void) => mockUseEffect(callback, [callback]),
 }));
 
-test('반려동물을 등록하면 목록에 나타난다', async () => {
+afterEach(cleanup);
+
+test('반려동물이 없으면 EmptyState가 뜨고, CTA를 누르면 등록 화면으로 이동한다', async () => {
   await render(<PetsScreen />);
 
   expect(await screen.findByText('등록된 반려동물이 없어요.')).toBeTruthy();
 
-  // @testing-library/react-native 14는 fireEvent.*가 Promise를 반환한다 — await 없이 연달아
-  // 호출하면 상태 업데이트가 겹쳐 유실될 수 있다.
-  await fireEvent.changeText(screen.getByLabelText('이름'), '보리');
-  await fireEvent.changeText(screen.getByLabelText('생년월일'), '2018-06-15');
-  await fireEvent.press(screen.getByLabelText('등록'));
-
-  await waitFor(() => expect(screen.getByText('보리')).toBeTruthy());
+  await fireEvent.press(screen.getByLabelText('반려동물 등록하기'));
+  expect(mockPush).toHaveBeenCalledWith('/pets/new');
 });
 
-test('"복약 관리"를 누르면 복약 관리 화면으로 이동한다', async () => {
+test('등록된 반려동물 카드가 보이고, 누르면 Pet Detail로 이동한다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  const pet = await petRepository.createPet({
+    name: '보리',
+    birthDate: '2018-06-15',
+    species: 'dog',
+    gender: 'male',
+  });
+
   await render(<PetsScreen />);
 
-  await fireEvent.press(screen.getByLabelText('복약 관리'));
-  expect(mockPush).toHaveBeenCalledWith('/medication');
+  await waitFor(() => expect(screen.getByText('보리')).toBeTruthy());
+
+  await fireEvent.press(screen.getByLabelText('보리'));
+  expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}`);
 });

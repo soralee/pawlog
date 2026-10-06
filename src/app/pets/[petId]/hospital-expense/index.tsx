@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
@@ -15,19 +15,17 @@ import {
   type HospitalExpense,
 } from '@/db/repositories/hospital-expense.repository';
 import { sumCurrentMonth } from '@/features/hospital-expense/monthly-total';
-import { useAppStore } from '@/stores/app.store';
 
 export default function HospitalExpenseScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const selectedPetId = useAppStore((state) => state.selectedPetId);
+  const { petId } = useLocalSearchParams<{ petId: string }>();
 
   const [expenses, setExpenses] = useState<HospitalExpense[]>([]);
 
   const load = useCallback(async () => {
-    if (!selectedPetId) return;
-    setExpenses(await createHospitalExpenseRepository(db).listByPet(selectedPetId));
-  }, [db, selectedPetId]);
+    setExpenses(await createHospitalExpenseRepository(db).listByPet(petId));
+  }, [db, petId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -46,7 +44,7 @@ export default function HospitalExpenseScreen() {
           <ThemedText type="title">병원비</ThemedText>
           <Pressable
             accessibilityLabel="병원비 추가"
-            onPress={() => router.push('/hospital-expense/new')}
+            onPress={() => router.push(`/pets/${petId}/hospital-expense/new`)}
           >
             <Ionicons name="add" size={24} color={Colors.light.primary} />
           </Pressable>
@@ -57,7 +55,7 @@ export default function HospitalExpenseScreen() {
             title="등록된 병원비가 없어요."
             description="병원 방문 비용을 기록해 보세요."
             ctaLabel="병원비 추가하기"
-            onPressCta={() => router.push('/hospital-expense/new')}
+            onPressCta={() => router.push(`/pets/${petId}/hospital-expense/new`)}
           />
         ) : (
           <>
@@ -79,7 +77,7 @@ export default function HospitalExpenseScreen() {
                   trailing={
                     <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
                   }
-                  onPress={() => router.push(`/hospital-expense/${expense.id}`)}
+                  onPress={() => router.push(`/pets/${petId}/hospital-expense/${expense.id}`)}
                 />
               ))}
             </ScrollView>

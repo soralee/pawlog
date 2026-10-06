@@ -50,7 +50,7 @@ test('반려동물이 없으면 안내 문구가 뜬다', async () => {
 test('기록이 없으면 EmptyState가 뜨고, CTA를 누르면 기록 종류 선택 시트가 열린다', async () => {
   useAppStore.setState({ selectedPetId: null });
   const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
-  await petRepository.createPet({
+  const pet = await petRepository.createPet({
     name: '보리',
     birthDate: '2018-06-15',
     species: 'dog',
@@ -64,7 +64,7 @@ test('기록이 없으면 EmptyState가 뜨고, CTA를 누르면 기록 종류 �
   await fireEvent.press(screen.getByLabelText('첫 기록 남기기'));
   await fireEvent.press(await screen.findByLabelText('건강 기록'));
 
-  expect(mockPush).toHaveBeenCalledWith('/health-record/new');
+  expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}/health-record/new`);
 });
 
 test('여러 종류의 기록이 필터로 좁혀지고, 최신 월부터 그룹으로 보인다', async () => {

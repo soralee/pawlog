@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -9,13 +9,12 @@ import { Input } from '@/components/input';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { createMedicationRepository } from '@/db/repositories/medication.repository';
-import { useAppStore } from '@/stores/app.store';
 import { isValidDateString, todayDateString } from '@/utils/date';
 
 export default function NewMedicationScreen() {
   const db = useSQLiteContext();
   const repository = useMemo(() => createMedicationRepository(db), [db]);
-  const petId = useAppStore((state) => state.selectedPetId);
+  const { petId } = useLocalSearchParams<{ petId: string }>();
   const router = useRouter();
 
   const [name, setName] = useState('');
@@ -31,7 +30,6 @@ export default function NewMedicationScreen() {
   const [memo, setMemo] = useState('');
 
   async function handleSave() {
-    if (!petId) return;
     if (!name.trim()) {
       setNameError('이름을 입력해주세요');
       return;

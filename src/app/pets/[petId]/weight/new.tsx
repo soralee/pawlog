@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -9,13 +9,12 @@ import { Input } from '@/components/input';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { createWeightRecordRepository } from '@/db/repositories/weight-record.repository';
-import { useAppStore } from '@/stores/app.store';
 import { isValidDateString, todayDateString } from '@/utils/date';
 
 export default function NewWeightRecordScreen() {
   const db = useSQLiteContext();
   const repository = useMemo(() => createWeightRecordRepository(db), [db]);
-  const petId = useAppStore((state) => state.selectedPetId);
+  const { petId } = useLocalSearchParams<{ petId: string }>();
   const router = useRouter();
 
   const [measuredAt, setMeasuredAt] = useState(todayDateString());
@@ -25,7 +24,6 @@ export default function NewWeightRecordScreen() {
   const [memo, setMemo] = useState('');
 
   async function handleSave() {
-    if (!petId) return;
     const parsed = Number(weightKg);
     if (!weightKg.trim() || Number.isNaN(parsed)) {
       setWeightKgError('체중을 숫자로 입력해주세요');

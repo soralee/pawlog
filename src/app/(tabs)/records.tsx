@@ -146,19 +146,23 @@ export default function RecordsScreen() {
   }, [filtered]);
 
   function openNew(type: RecordType) {
-    if (type === 'health') router.push('/health-record/new');
-    else if (type === 'vaccination') router.push('/vaccination/new');
-    else if (type === 'checkup') router.push('/checkup/new');
-    else if (type === 'weight') router.push('/weight/new');
-    else router.push('/hospital-expense/new');
+    // TODO(records-schedule-multi-pet): 펫이 2마리 이상이면 펫 선택을 먼저 띄워야 한다.
+    if (!selectedPetId) return;
+    if (type === 'health') router.push(`/pets/${selectedPetId}/health-record/new`);
+    else if (type === 'vaccination') router.push(`/pets/${selectedPetId}/vaccination/new`);
+    else if (type === 'checkup') router.push(`/pets/${selectedPetId}/checkup/new`);
+    else if (type === 'weight') router.push(`/pets/${selectedPetId}/weight/new`);
+    else router.push(`/pets/${selectedPetId}/hospital-expense/new`);
   }
 
   function openDetail(entry: TimelineEntry) {
-    if (entry.type === 'health') router.push(`/health-record/${entry.id}`);
-    else if (entry.type === 'vaccination') router.push(`/vaccination/${entry.id}`);
-    else if (entry.type === 'checkup') router.push(`/checkup/${entry.id}`);
-    else if (entry.type === 'weight') router.push(`/weight/${entry.id}`);
-    else router.push(`/hospital-expense/${entry.id}`);
+    if (!selectedPetId) return;
+    if (entry.type === 'health') router.push(`/pets/${selectedPetId}/health-record/${entry.id}`);
+    else if (entry.type === 'vaccination')
+      router.push(`/pets/${selectedPetId}/vaccination/${entry.id}`);
+    else if (entry.type === 'checkup') router.push(`/pets/${selectedPetId}/checkup/${entry.id}`);
+    else if (entry.type === 'weight') router.push(`/pets/${selectedPetId}/weight/${entry.id}`);
+    else router.push(`/pets/${selectedPetId}/hospital-expense/${entry.id}`);
   }
 
   return (
