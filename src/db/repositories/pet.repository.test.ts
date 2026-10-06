@@ -58,3 +58,24 @@ test('존재하지 않는 id를 수정하면 null', async () => {
   const repo = setup();
   expect(await repo.updatePet('없는-id', { name: 'x' })).toBeNull();
 });
+
+test('삭제하면 더 이상 조회되지 않고, 다른 반려동물은 남는다', async () => {
+  const repo = setup();
+  const borie = await repo.createPet({
+    name: '보리',
+    birthDate: '2018-06-15',
+    species: 'dog',
+    gender: 'male',
+  });
+  const nabi = await repo.createPet({
+    name: '나비',
+    birthDate: '2020-01-01',
+    species: 'cat',
+    gender: 'female',
+  });
+
+  await repo.remove(borie.id);
+
+  expect(await repo.getPet(borie.id)).toBeNull();
+  expect(await repo.getPet(nabi.id)).toEqual(nabi);
+});

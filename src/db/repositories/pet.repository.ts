@@ -99,5 +99,9 @@ export function createPetRepository(db: PetDb) {
     return updated;
   }
 
-  return { createPet, getPet, listPets, updatePet };
+  async function remove(id: string): Promise<void> {
+    await db.runAsync('DELETE FROM pets WHERE id = ?', [id]);
+  }
+
+  return { createPet, getPet, listPets, updatePet, remove };
 }

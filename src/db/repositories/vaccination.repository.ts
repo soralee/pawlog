@@ -129,5 +129,9 @@ export function createVaccinationRepository(db: VaccinationDb) {
     await db.runAsync('DELETE FROM vaccinations WHERE id = ?', [id]);
   }
 
-  return { create, get, listByPet, update, remove };
+  async function removeByPet(petId: string): Promise<void> {
+    await db.runAsync('DELETE FROM vaccinations WHERE pet_id = ?', [petId]);
+  }
+
+  return { create, get, listByPet, update, remove, removeByPet };
 }

@@ -136,5 +136,9 @@ export function createMedicationRepository(db: MedicationDb) {
     await db.runAsync('DELETE FROM medications WHERE id = ?', [id]);
   }
 
-  return { create, get, listByPet, update, remove };
+  async function removeByPet(petId: string): Promise<void> {
+    await db.runAsync('DELETE FROM medications WHERE pet_id = ?', [petId]);
+  }
+
+  return { create, get, listByPet, update, remove, removeByPet };
 }

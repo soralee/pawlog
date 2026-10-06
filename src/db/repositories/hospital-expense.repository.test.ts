@@ -33,3 +33,14 @@ test('선택 필드를 생략하면 null로 채워지고, get으로 단건 조�
   expect(await repo.get(created.id)).toEqual(created);
   expect(await repo.get('없는-id')).toBeNull();
 });
+
+test('removeByPet은 해당 펫의 기록만 전부 지우고 다른 펫 기록은 남긴다', async () => {
+  const repo = setup();
+  await repo.create({ petId: 'pet-1', spentAt: '2026-09-15', amount: 40000 });
+  await repo.create({ petId: 'pet-2', spentAt: '2026-10-02', amount: 85000 });
+
+  await repo.removeByPet('pet-1');
+
+  expect(await repo.listByPet('pet-1')).toEqual([]);
+  expect(await repo.listByPet('pet-2')).toHaveLength(1);
+});

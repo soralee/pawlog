@@ -3,7 +3,7 @@
  * 실제 SQL 엔진이 아니라, 이 프로젝트가 실제로 쓰는 쿼리 패턴만 인식한다:
  *   INSERT INTO <table> (...) VALUES (...)
  *   UPDATE <table> SET col = ?, ... WHERE id = ?
- *   DELETE FROM <table> WHERE id = ?
+ *   DELETE FROM <table> WHERE <column> = ? (한 건 또는 여러 건 모두 삭제)
  *   SELECT * FROM <table> WHERE <column> = ?
  *   SELECT * FROM <table> WHERE <column> = ? ORDER BY <col> <ASC|DESC>
  *   SELECT * FROM <table> ORDER BY <col> <ASC|DESC>
@@ -46,14 +46,14 @@ export function createFakeSqliteDatabase() {
       return { changes: 1, lastInsertRowId: 0 };
     }
 
-    const deleteMatch = sql.match(/DELETE FROM (\w+) WHERE id = \?/i);
+    const deleteMatch = sql.match(/DELETE FROM (\w+) WHERE (\w+) = \?/i);
     if (deleteMatch) {
-      const [, table] = deleteMatch;
+      const [, table, column] = deleteMatch;
       const rows = tableOf(table);
-      const index = rows.findIndex((r) => r.id === params[0]);
-      if (index === -1) return { changes: 0, lastInsertRowId: 0 };
-      rows.splice(index, 1);
-      return { changes: 1, lastInsertRowId: 0 };
+      const remaining = rows.filter((r) => r[column] !== params[0]);
+      const changes = rows.length - remaining.length;
+      tables.set(table, remaining);
+      return { changes, lastInsertRowId: 0 };
     }
 
     throw new Error(`fake-sqlite-database: unsupported runAsync query: ${sql}`);

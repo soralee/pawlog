@@ -65,3 +65,26 @@ test('get으로 단건 조회한다', async () => {
   expect(await repo.get(created.id)).toEqual(created);
   expect(await repo.get('없는-id')).toBeNull();
 });
+
+test('removeByPet은 해당 펫의 기록만 전부 지우고 다른 펫 기록은 남긴다', async () => {
+  const repo = setup();
+  await repo.create({
+    petId: 'pet-1',
+    name: '영양제',
+    startDate: '2026-09-01',
+    time: '21:00',
+    frequency: '매일',
+  });
+  await repo.create({
+    petId: 'pet-2',
+    name: '심장약',
+    startDate: '2026-09-10',
+    time: '09:00',
+    frequency: '매일',
+  });
+
+  await repo.removeByPet('pet-1');
+
+  expect(await repo.listByPet('pet-1')).toEqual([]);
+  expect(await repo.listByPet('pet-2')).toHaveLength(1);
+});

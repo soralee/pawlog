@@ -127,5 +127,9 @@ export function createCheckupRepository(db: CheckupDb) {
     await db.runAsync('DELETE FROM checkups WHERE id = ?', [id]);
   }
 
-  return { create, get, listByPet, update, remove };
+  async function removeByPet(petId: string): Promise<void> {
+    await db.runAsync('DELETE FROM checkups WHERE pet_id = ?', [petId]);
+  }
+
+  return { create, get, listByPet, update, remove, removeByPet };
 }

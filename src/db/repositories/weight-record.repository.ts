@@ -110,5 +110,9 @@ export function createWeightRecordRepository(db: WeightRecordDb) {
     await db.runAsync('DELETE FROM weight_records WHERE id = ?', [id]);
   }
 
-  return { create, get, listByPet, update, remove };
+  async function removeByPet(petId: string): Promise<void> {
+    await db.runAsync('DELETE FROM weight_records WHERE pet_id = ?', [petId]);
+  }
+
+  return { create, get, listByPet, update, remove, removeByPet };
 }
