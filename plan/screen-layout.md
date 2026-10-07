@@ -337,6 +337,8 @@ D-14
 
 ### Add Schedule
 
+여기서 추가하는 예방접종/건강검진은 완료 기록이 아니라 아직 수행하지 않은 `일정`이다. 저장 후 Records가 아니라 Schedule에 표시한다.
+
 Schedule에서 직접 추가 가능한 도메인:
 
 - 예방접종
@@ -1202,6 +1204,138 @@ Aggregate 화면은 여러 Pet의 데이터를 Query/Service Layer에서 합쳐 
 - Records/Schedule의 Pet Filter 숨김
 - Home 병원비의 전체/개별 중복 Breakdown 숨김
 - 기록/일정 Form의 Pet 선택 과정은 생략 가능하지만 대상 Pet 이름은 확인 가능하게 표시
+
+
+
+---
+
+# 26. Record ↔ Schedule Lifecycle
+
+화면 구현 시 가장 중요한 Domain Rule:
+
+> **기록은 실제로 일어난 일, 일정은 아직 해야 하는 일이다.**
+
+날짜가 미래/과거인지 만으로 Records와 Schedule을 분류하지 않는다.
+
+## 26.1 Schedule Add
+
+일정 탭에서 추가 가능한 항목:
+
+```text
+예방접종 일정
+건강검진 일정
+복약 일정
+```
+
+예방접종/검진 Form의 날짜 Label은 `접종일`, `검진일`이 아니라 **`예정일`** 로 표시한다.
+
+저장 직후 해당 항목은 Schedule에 표시되어야 하며 Records에는 표시하지 않는다.
+
+## 26.2 Record Add
+
+기록 탭에서 추가 가능한 항목:
+
+```text
+건강 기록
+예방접종 기록
+건강검진 기록
+체중 기록
+병원비 기록
+```
+
+예방접종/검진의 날짜는 **실제 수행일**이다. 미래 날짜를 완료 기록으로 저장하지 않는다.
+
+## 26.3 Complete Schedule Flow
+
+예방접종/건강검진 일정 Detail에는 명확한 `완료하기` Action을 제공한다.
+
+```text
+<          예방접종 일정
+
+보리
+종합백신
+
+예정일
+2026.10.20
+
+[          완료하기          ]
+```
+
+완료 선택:
+
+```text
+접종을 완료했나요?
+
+실제 접종일
+[ 2026.10.20 ]
+
+병원 (선택)
+[            ]
+
+메모 (선택)
+[            ]
+
+[       완료하고 기록하기     ]
+```
+
+완료 후:
+
+- Upcoming Schedule에서 제거
+- Records에 완료 기록 표시
+- Home Upcoming에서 제거
+- Home Recent Records에 반영 가능
+- 예약된 관련 Notification 취소/정리
+
+## 26.4 Past-due UI
+
+예정일이 지나도 자동으로 Records로 이동시키지 않는다.
+
+Schedule에서 별도 Section 또는 상태로 보여준다.
+
+```text
+지난 일정
+
+[보리] 종합백신
+10월 2일 · 5일 지남              ›
+
+[       완료하기       ]
+```
+
+사용자가 실제로 수행하지 않았을 수 있기 때문이다.
+
+## 26.5 Medication Exception
+
+복약은 매 복용 회차마다 Records로 전환하지 않는다.
+
+- 활성 복약 계획은 Schedule에서 관리
+- Home에는 오늘 필요한 복약만 Instance 형태로 표시
+- 반복 규칙은 하나의 Medication으로 유지
+- 종료된 Medication은 복약 관리 화면의 종료 목록으로 이동
+- MVP에서는 매일의 복용 완료 여부를 Records Timeline에 생성하지 않는다.
+
+## 26.6 Copy Rules
+
+모호한 Label을 피한다.
+
+```text
+Records:
+예방접종 기록 추가
+건강검진 기록 추가
+
+Schedule:
+예방접종 일정 추가
+건강검진 일정 추가
+복약 일정 추가
+```
+
+Form에서도:
+
+```text
+완료 기록 → 실제 접종일 / 실제 검진일
+예정 일정 → 예정일
+```
+
+Claude Code는 두 Context에서 같은 Form을 재사용하더라도 Label과 Validation을 동일하게 처리하지 않는다.
 
 
 # Final Screen Direction
