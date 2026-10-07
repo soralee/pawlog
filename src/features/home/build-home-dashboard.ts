@@ -41,18 +41,23 @@ export function buildHomeDashboard(
       date: r.recordedAt,
       title: '건강 기록',
     })),
-    ...data.vaccinations.map((r) => ({
-      id: r.id,
-      type: 'vaccination' as const,
-      date: r.vaccinatedAt,
-      title: r.vaccineName,
-    })),
-    ...data.checkups.map((r) => ({
-      id: r.id,
-      type: 'checkup' as const,
-      date: r.checkedAt,
-      title: r.checkupType,
-    })),
+    // 완료하지 않은(vaccinatedAt/checkedAt이 없는) 예정 일정은 최근 기록이 아니라 일정이다.
+    ...data.vaccinations
+      .filter((r) => r.vaccinatedAt)
+      .map((r) => ({
+        id: r.id,
+        type: 'vaccination' as const,
+        date: r.vaccinatedAt!,
+        title: r.vaccineName,
+      })),
+    ...data.checkups
+      .filter((r) => r.checkedAt)
+      .map((r) => ({
+        id: r.id,
+        type: 'checkup' as const,
+        date: r.checkedAt!,
+        title: r.checkupType,
+      })),
     ...data.weightRecords.map((r) => ({
       id: r.id,
       type: 'weight' as const,

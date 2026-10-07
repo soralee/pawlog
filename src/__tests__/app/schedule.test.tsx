@@ -55,9 +55,9 @@ test('일정이 없으면 EmptyState가 뜨고, CTA를 누르면 일정 추가 �
   expect(await screen.findByText('다가오는 일정이 없어요.')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('일정 추가하기'));
-  await fireEvent.press(await screen.findByLabelText('예방접종'));
+  await fireEvent.press(await screen.findByLabelText('예방접종 일정'));
 
-  expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}/vaccination/new`);
+  expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}/vaccination/new-schedule`);
 });
 
 test('접종/검진 일정이 필터로 좁혀지고 월/일 그룹으로 보인다', async () => {
@@ -79,14 +79,12 @@ test('접종/검진 일정이 필터로 좁혀지고 월/일 그룹으로 보인
   await vaccinationRepo.create({
     petId: pet.id,
     vaccineName: '종합백신',
-    vaccinatedAt: todayDateString(),
     nextDueAt: vaccinationDue,
   });
   const checkupRepo = createCheckupRepository(mockDbInstance! as unknown as CheckupDb);
   await checkupRepo.create({
     petId: pet.id,
     checkupType: '심장 검진',
-    checkedAt: todayDateString(),
     nextDueAt: checkupDue,
   });
 

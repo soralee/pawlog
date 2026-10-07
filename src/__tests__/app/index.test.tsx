@@ -62,6 +62,11 @@ test('반려동물 정보와 대시보드 5개 섹션이 보이고, 전체보기
     petId: pet.id,
     vaccineName: '종합백신',
     vaccinatedAt: '2026-06-01',
+  });
+  // 완료하지 않은 예정 일정("다음 일정")은 vaccinatedAt 없이 nextDueAt만 가진 별도 행이다.
+  await vaccinationRepo.create({
+    petId: pet.id,
+    vaccineName: '광견병',
     nextDueAt: '2026-10-20',
   });
   const checkupRepo = createCheckupRepository(mockDbInstance! as unknown as CheckupDb);
@@ -86,8 +91,8 @@ test('반려동물 정보와 대시보드 5개 섹션이 보이고, 전체보기
   await render(<HomeScreen />);
 
   expect(await screen.findByText('보리')).toBeTruthy();
-  // 종합백신은 "다음 일정"(nextDueAt)과 "최근 기록"(vaccinatedAt) 양쪽에 걸쳐 나온다.
-  expect(screen.getAllByText('종합백신')).toHaveLength(2);
+  expect(screen.getByText('종합백신')).toBeTruthy();
+  expect(screen.getByText('광견병')).toBeTruthy();
   expect(screen.getByText('심장 검진')).toBeTruthy();
   expect(screen.getByText('영양제')).toBeTruthy();
   expect(screen.getByText('85,000원')).toBeTruthy();

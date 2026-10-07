@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS vaccinations (
   id TEXT PRIMARY KEY NOT NULL,
   pet_id TEXT NOT NULL,
   vaccine_name TEXT NOT NULL,
-  vaccinated_at TEXT NOT NULL,
+  vaccinated_at TEXT,
   next_due_at TEXT,
   hospital_name TEXT,
   memo TEXT,

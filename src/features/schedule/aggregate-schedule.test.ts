@@ -8,7 +8,7 @@ function makeVaccination(overrides: Partial<Vaccination>): Vaccination {
     id: 'v1',
     petId: 'pet-1',
     vaccineName: '종합백신',
-    vaccinatedAt: '2026-06-01',
+    vaccinatedAt: null,
     nextDueAt: null,
     hospitalName: null,
     memo: null,
@@ -23,7 +23,7 @@ function makeCheckup(overrides: Partial<Checkup>): Checkup {
     id: 'c1',
     petId: 'pet-1',
     checkupType: '건강검진',
-    checkedAt: '2026-06-01',
+    checkedAt: null,
     nextDueAt: null,
     hospitalName: null,
     memo: null,
@@ -48,4 +48,16 @@ test('접종/검진을 날짜 오름차순으로 합쳐 정렬한다', () => {
     { id: 'c1', type: 'checkup', date: '2026-09-28', title: '심장 검진' },
     { id: 'v1', type: 'vaccination', date: '2026-10-05', title: '광견병' },
   ]);
+});
+
+test('이미 완료된(vaccinatedAt/checkedAt이 채워진) 기록은 일정에서 제외한다', () => {
+  const completedVaccination = makeVaccination({
+    nextDueAt: '2026-10-05',
+    vaccinatedAt: '2026-09-01',
+  });
+  const completedCheckup = makeCheckup({ nextDueAt: '2026-09-28', checkedAt: '2026-09-01' });
+
+  const result = aggregateSchedule([completedVaccination], [completedCheckup]);
+
+  expect(result).toEqual([]);
 });

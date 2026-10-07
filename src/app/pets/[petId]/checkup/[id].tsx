@@ -6,12 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { DDayChip } from '@/components/d-day-chip';
 import { Input } from '@/components/input';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { createCheckupRepository, type Checkup } from '@/db/repositories/checkup.repository';
-import { isValidDateString } from '@/utils/date';
+import { daysUntil, isValidDateString } from '@/utils/date';
+
+type Mode = 'view' | 'editing' | 'completing';
 
 export default function CheckupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -19,7 +22,8 @@ export default function CheckupDetailScreen() {
   const router = useRouter();
 
   const [record, setRecord] = useState<Checkup | null>(null);
-  const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<Mode>('view');
+
   const [checkupType, setCheckupType] = useState('');
   const [checkupTypeError, setCheckupTypeError] = useState('');
   const [checkedAt, setCheckedAt] = useState('');
@@ -36,7 +40,7 @@ export default function CheckupDetailScreen() {
     setRecord(found);
     if (found) {
       setCheckupType(found.checkupType);
-      setCheckedAt(found.checkedAt);
+      setCheckedAt(found.checkedAt ?? '');
       setNextDueAt(found.nextDueAt ?? '');
       setHospitalName(found.hospitalName ?? '');
       setMemo(found.memo ?? '');
@@ -48,28 +52,57 @@ export default function CheckupDetailScreen() {
     void load();
   }, [load]);
 
-  async function handleSave() {
+  const isScheduleOnly = !!record && !record.checkedAt;
+
+  async function handleSaveSchedule() {
     if (!checkupType.trim()) {
       setCheckupTypeError('검진 종류를 입력해주세요');
       return;
     }
-    if (!isValidDateString(checkedAt.trim())) {
+    if (!isValidDateString(nextDueAt.trim())) {
+      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
+    const repository = createCheckupRepository(db);
+    await repository.update(id, { checkupType, nextDueAt: nextDueAt.trim() });
+    setMode('view');
+    await load();
+  }
+
+  async function handleComplete() {
+    const trimmedDate = checkedAt.trim();
+    if (!isValidDateString(trimmedDate)) {
       setCheckedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
-    if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
-      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+    const repository = createCheckupRepository(db);
+    await repository.update(id, {
+      checkedAt: trimmedDate,
+      hospitalName: hospitalName.trim() || null,
+      memo: memo.trim() || null,
+    });
+    setMode('view');
+    await load();
+  }
+
+  async function handleSaveCompleted() {
+    if (!checkupType.trim()) {
+      setCheckupTypeError('검진 종류를 입력해주세요');
+      return;
+    }
+    const trimmedDate = checkedAt.trim();
+    if (!isValidDateString(trimmedDate)) {
+      setCheckedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
     const repository = createCheckupRepository(db);
     await repository.update(id, {
       checkupType,
-      checkedAt: checkedAt.trim(),
-      nextDueAt: nextDueAt.trim() || null,
+      checkedAt: trimmedDate,
       hospitalName: hospitalName.trim() || null,
       memo: memo.trim() || null,
     });
-    setEditing(false);
+    setMode('view');
     await load();
   }
 
@@ -84,10 +117,10 @@ export default function CheckupDetailScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen
         options={{
-          title: '건강검진',
+          title: isScheduleOnly ? '건강검진 일정' : '건강검진 기록',
           headerRight: () =>
-            record && !editing ? (
-              <Pressable accessibilityLabel="수정" onPress={() => setEditing(true)}>
+            record && mode === 'view' ? (
+              <Pressable accessibilityLabel="수정" onPress={() => setMode('editing')}>
                 <ThemedText type="default" themeColor="primary">
                   수정
                 </ThemedText>
@@ -96,7 +129,18 @@ export default function CheckupDetailScreen() {
         }}
       />
       <SafeAreaView style={styles.safeArea}>
-        {record && editing && (
+        {record && isScheduleOnly && mode === 'view' && (
+          <>
+            <ThemedText type="heading">{record.checkupType}</ThemedText>
+            <ThemedView style={styles.row}>
+              <ThemedText type="default">예정일 {record.nextDueAt}</ThemedText>
+              {record.nextDueAt ? <DDayChip daysUntil={daysUntil(record.nextDueAt)} /> : null}
+            </ThemedView>
+            <Button onPress={() => setMode('completing')}>완료하기</Button>
+          </>
+        )}
+
+        {record && isScheduleOnly && mode === 'editing' && (
           <>
             <Input
               label="검진 종류"
@@ -108,17 +152,7 @@ export default function CheckupDetailScreen() {
               error={checkupTypeError}
             />
             <Input
-              label="검진일"
-              value={checkedAt}
-              onChangeText={(text) => {
-                setCheckedAt(text);
-                setCheckedAtError('');
-              }}
-              error={checkedAtError}
-            />
-            <Input
-              label="다음 검진 예정일"
-              optional
+              label="예정일"
               value={nextDueAt}
               onChangeText={(text) => {
                 setNextDueAt(text);
@@ -126,32 +160,73 @@ export default function CheckupDetailScreen() {
               }}
               error={nextDueAtError}
             />
-            <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
-            <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
-            <Button onPress={handleSave}>저장하기</Button>
+            <Button onPress={handleSaveSchedule}>저장하기</Button>
           </>
         )}
-        {record && !editing && (
+
+        {record && isScheduleOnly && mode === 'completing' && (
+          <>
+            <ThemedText type="heading">검진을 완료했나요?</ThemedText>
+            <Input
+              label="실제 검진일"
+              value={checkedAt}
+              onChangeText={(text) => {
+                setCheckedAt(text);
+                setCheckedAtError('');
+              }}
+              error={checkedAtError}
+            />
+            <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
+            <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
+            <Button onPress={handleComplete}>완료하고 기록하기</Button>
+          </>
+        )}
+
+        {record && !isScheduleOnly && mode === 'view' && (
           <>
             <ThemedText type="heading">{record.checkupType}</ThemedText>
             <ThemedText type="default">검진일 {record.checkedAt}</ThemedText>
-            {record.nextDueAt ? (
-              <ThemedText type="default">다음 예정일 {record.nextDueAt}</ThemedText>
-            ) : null}
             {record.hospitalName ? (
               <ThemedText type="default">{record.hospitalName}</ThemedText>
             ) : null}
             {record.memo ? <ThemedText type="default">{record.memo}</ThemedText> : null}
           </>
         )}
+
+        {record && !isScheduleOnly && mode === 'editing' && (
+          <>
+            <Input
+              label="검진 종류"
+              value={checkupType}
+              onChangeText={(text) => {
+                setCheckupType(text);
+                setCheckupTypeError('');
+              }}
+              error={checkupTypeError}
+            />
+            <Input
+              label="실제 검진일"
+              value={checkedAt}
+              onChangeText={(text) => {
+                setCheckedAt(text);
+                setCheckedAtError('');
+              }}
+              error={checkedAtError}
+            />
+            <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
+            <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
+            <Button onPress={handleSaveCompleted}>저장하기</Button>
+          </>
+        )}
+
         <Button variant="destructive" onPress={() => setConfirmVisible(true)}>
-          기록 삭제
+          {isScheduleOnly ? '일정 삭제' : '기록 삭제'}
         </Button>
       </SafeAreaView>
       <ConfirmDialog
         visible={confirmVisible}
-        title="이 기록을 삭제할까요?"
-        description="삭제한 기록은 복구할 수 없어요."
+        title={isScheduleOnly ? '이 일정을 삭제할까요?' : '이 기록을 삭제할까요?'}
+        description="삭제한 내용은 복구할 수 없어요."
         onConfirm={handleDelete}
         onCancel={() => setConfirmVisible(false)}
       />
@@ -162,4 +237,9 @@ export default function CheckupDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
 });

@@ -23,7 +23,7 @@ import {
   type ScheduleType,
 } from '@/features/schedule/aggregate-schedule';
 import { useAppStore } from '@/stores/app.store';
-import { daysUntil } from '@/utils/date';
+import { daysUntil, todayDateString } from '@/utils/date';
 
 type FilterKey = 'all' | ScheduleType;
 
@@ -99,15 +99,19 @@ export default function ScheduleScreen() {
   );
 
   const filtered = filter === 'all' ? entries : entries.filter((entry) => entry.type === filter);
-  const groups = useMemo(() => groupByMonthAndDay(filtered), [filtered]);
+  // 예정일이 지난 미완료 일정은 "지난 일정"으로 따로 모아 보여준다 — 자동 완료하지 않는다.
+  const today = todayDateString();
+  const overdue = filtered.filter((entry) => entry.date < today);
+  const upcoming = filtered.filter((entry) => entry.date >= today);
+  const groups = useMemo(() => groupByMonthAndDay(upcoming), [upcoming]);
 
   function openNew(type: ScheduleType) {
     // TODO(records-schedule-multi-pet): 펫이 2마리 이상이면 펫 선택을 먼저 띄워야 한다.
     if (!selectedPetId) return;
     router.push(
       type === 'vaccination'
-        ? `/pets/${selectedPetId}/vaccination/new`
-        : `/pets/${selectedPetId}/checkup/new`,
+        ? `/pets/${selectedPetId}/vaccination/new-schedule`
+        : `/pets/${selectedPetId}/checkup/new-schedule`,
     );
   }
 
@@ -162,6 +166,22 @@ export default function ScheduleScreen() {
               />
             ) : (
               <ScrollView>
+                {overdue.length > 0 && (
+                  <ThemedView style={styles.monthGroup}>
+                    <ThemedText type="small" themeColor="warning">
+                      지난 일정
+                    </ThemedText>
+                    {overdue.map((entry) => (
+                      <ListItem
+                        key={entry.id}
+                        title={entry.title}
+                        subtitle={entry.date}
+                        trailing={<DDayChip daysUntil={daysUntil(entry.date)} />}
+                        onPress={() => openDetail(entry)}
+                      />
+                    ))}
+                  </ThemedView>
+                )}
                 {groups.map((monthGroup) => (
                   <ThemedView key={monthGroup.month} style={styles.monthGroup}>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -200,8 +220,8 @@ export default function ScheduleScreen() {
         title="어떤 일정을 추가할까요?"
         onClose={() => setSheetVisible(false)}
         options={[
-          { label: '예방접종', onPress: () => openNew('vaccination') },
-          { label: '건강검진', onPress: () => openNew('checkup') },
+          { label: '예방접종 일정', onPress: () => openNew('vaccination') },
+          { label: '건강검진 일정', onPress: () => openNew('checkup') },
         ]}
       />
     </ThemedView>

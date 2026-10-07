@@ -85,20 +85,25 @@ export default function RecordsScreen() {
         title: '건강 기록',
         subtitle: r.note,
       })),
-      ...vaccinations.map((r) => ({
-        id: r.id,
-        type: 'vaccination' as const,
-        date: r.vaccinatedAt,
-        title: r.vaccineName,
-        subtitle: r.hospitalName ?? undefined,
-      })),
-      ...checkups.map((r) => ({
-        id: r.id,
-        type: 'checkup' as const,
-        date: r.checkedAt,
-        title: r.checkupType,
-        subtitle: r.hospitalName ?? undefined,
-      })),
+      // 완료하지 않은(vaccinatedAt/checkedAt이 없는) 예정 일정은 "일정" 탭 몫이라 뺀다.
+      ...vaccinations
+        .filter((r) => r.vaccinatedAt)
+        .map((r) => ({
+          id: r.id,
+          type: 'vaccination' as const,
+          date: r.vaccinatedAt!,
+          title: r.vaccineName,
+          subtitle: r.hospitalName ?? undefined,
+        })),
+      ...checkups
+        .filter((r) => r.checkedAt)
+        .map((r) => ({
+          id: r.id,
+          type: 'checkup' as const,
+          date: r.checkedAt!,
+          title: r.checkupType,
+          subtitle: r.hospitalName ?? undefined,
+        })),
       ...weightRecords.map((r) => ({
         id: r.id,
         type: 'weight' as const,
@@ -241,10 +246,10 @@ export default function RecordsScreen() {
         onClose={() => setSheetVisible(false)}
         options={[
           { label: '건강 기록', onPress: () => openNew('health') },
-          { label: '예방접종', onPress: () => openNew('vaccination') },
-          { label: '건강검진', onPress: () => openNew('checkup') },
-          { label: '체중', onPress: () => openNew('weight') },
-          { label: '병원비', onPress: () => openNew('hospital-expense') },
+          { label: '예방접종 기록', onPress: () => openNew('vaccination') },
+          { label: '건강검진 기록', onPress: () => openNew('checkup') },
+          { label: '체중 기록', onPress: () => openNew('weight') },
+          { label: '병원비 기록', onPress: () => openNew('hospital-expense') },
         ]}
       />
     </ThemedView>

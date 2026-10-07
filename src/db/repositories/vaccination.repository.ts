@@ -4,7 +4,8 @@ export type Vaccination = {
   id: string;
   petId: string;
   vaccineName: string;
-  vaccinatedAt: string;
+  /** null이면 아직 완료하지 않은 예정 일정이다 — screen-layout.md §26. */
+  vaccinatedAt: string | null;
   nextDueAt: string | null;
   hospitalName: string | null;
   memo: string | null;
@@ -15,7 +16,7 @@ export type Vaccination = {
 export type CreateVaccinationInput = {
   petId: string;
   vaccineName: string;
-  vaccinatedAt: string;
+  vaccinatedAt?: string | null;
   nextDueAt?: string | null;
   hospitalName?: string | null;
   memo?: string | null;
@@ -27,7 +28,7 @@ type VaccinationRow = {
   id: string;
   pet_id: string;
   vaccine_name: string;
-  vaccinated_at: string;
+  vaccinated_at: string | null;
   next_due_at: string | null;
   hospital_name: string | null;
   memo: string | null;
@@ -60,7 +61,7 @@ export function createVaccinationRepository(db: VaccinationDb) {
       id: generateId(),
       petId: input.petId,
       vaccineName: input.vaccineName,
-      vaccinatedAt: input.vaccinatedAt,
+      vaccinatedAt: input.vaccinatedAt ?? null,
       nextDueAt: input.nextDueAt ?? null,
       hospitalName: input.hospitalName ?? null,
       memo: input.memo ?? null,

@@ -11,6 +11,7 @@ import { Spacing } from '@/constants/theme';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
 import { isValidDateString, todayDateString } from '@/utils/date';
 
+/** "기록" 탭에서 추가하는 예방접종 — 이미 접종을 완료한 기록이다(screen-layout.md §26.2). */
 export default function NewVaccinationScreen() {
   const db = useSQLiteContext();
   const repository = useMemo(() => createVaccinationRepository(db), [db]);
@@ -21,8 +22,6 @@ export default function NewVaccinationScreen() {
   const [vaccineNameError, setVaccineNameError] = useState('');
   const [vaccinatedAt, setVaccinatedAt] = useState(todayDateString());
   const [vaccinatedAtError, setVaccinatedAtError] = useState('');
-  const [nextDueAt, setNextDueAt] = useState('');
-  const [nextDueAtError, setNextDueAtError] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [memo, setMemo] = useState('');
 
@@ -31,19 +30,21 @@ export default function NewVaccinationScreen() {
       setVaccineNameError('백신 이름을 입력해주세요');
       return;
     }
-    if (!isValidDateString(vaccinatedAt.trim())) {
+    const trimmedDate = vaccinatedAt.trim();
+    if (!isValidDateString(trimmedDate)) {
       setVaccinatedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
-    if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
-      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+    if (trimmedDate > todayDateString()) {
+      setVaccinatedAtError(
+        '미래 날짜는 기록으로 저장할 수 없어요. 예정이라면 "일정" 탭에서 등록해주세요.',
+      );
       return;
     }
     await repository.create({
       petId,
       vaccineName,
-      vaccinatedAt: vaccinatedAt.trim(),
-      nextDueAt: nextDueAt.trim() || null,
+      vaccinatedAt: trimmedDate,
       hospitalName: hospitalName.trim() || null,
       memo: memo.trim() || null,
     });
@@ -52,7 +53,7 @@ export default function NewVaccinationScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: '예방접종' }} />
+      <Stack.Screen options={{ title: '예방접종 기록' }} />
       <SafeAreaView style={styles.safeArea}>
         <Input
           label="백신 이름"
@@ -64,23 +65,13 @@ export default function NewVaccinationScreen() {
           error={vaccineNameError}
         />
         <Input
-          label="접종일"
+          label="실제 접종일"
           value={vaccinatedAt}
           onChangeText={(text) => {
             setVaccinatedAt(text);
             setVaccinatedAtError('');
           }}
           error={vaccinatedAtError}
-        />
-        <Input
-          label="다음 접종 예정일"
-          optional
-          value={nextDueAt}
-          onChangeText={(text) => {
-            setNextDueAt(text);
-            setNextDueAtError('');
-          }}
-          error={nextDueAtError}
         />
         <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
         <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />

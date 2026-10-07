@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { DDayChip } from '@/components/d-day-chip';
 import { Input } from '@/components/input';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -14,7 +15,9 @@ import {
   createVaccinationRepository,
   type Vaccination,
 } from '@/db/repositories/vaccination.repository';
-import { isValidDateString } from '@/utils/date';
+import { daysUntil, isValidDateString } from '@/utils/date';
+
+type Mode = 'view' | 'editing' | 'completing';
 
 export default function VaccinationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,7 +25,8 @@ export default function VaccinationDetailScreen() {
   const router = useRouter();
 
   const [record, setRecord] = useState<Vaccination | null>(null);
-  const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<Mode>('view');
+
   const [vaccineName, setVaccineName] = useState('');
   const [vaccineNameError, setVaccineNameError] = useState('');
   const [vaccinatedAt, setVaccinatedAt] = useState('');
@@ -39,7 +43,7 @@ export default function VaccinationDetailScreen() {
     setRecord(found);
     if (found) {
       setVaccineName(found.vaccineName);
-      setVaccinatedAt(found.vaccinatedAt);
+      setVaccinatedAt(found.vaccinatedAt ?? '');
       setNextDueAt(found.nextDueAt ?? '');
       setHospitalName(found.hospitalName ?? '');
       setMemo(found.memo ?? '');
@@ -51,28 +55,57 @@ export default function VaccinationDetailScreen() {
     void load();
   }, [load]);
 
-  async function handleSave() {
+  const isScheduleOnly = !!record && !record.vaccinatedAt;
+
+  async function handleSaveSchedule() {
     if (!vaccineName.trim()) {
       setVaccineNameError('백신 이름을 입력해주세요');
       return;
     }
-    if (!isValidDateString(vaccinatedAt.trim())) {
+    if (!isValidDateString(nextDueAt.trim())) {
+      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+      return;
+    }
+    const repository = createVaccinationRepository(db);
+    await repository.update(id, { vaccineName, nextDueAt: nextDueAt.trim() });
+    setMode('view');
+    await load();
+  }
+
+  async function handleComplete() {
+    const trimmedDate = vaccinatedAt.trim();
+    if (!isValidDateString(trimmedDate)) {
       setVaccinatedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
-    if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
-      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+    const repository = createVaccinationRepository(db);
+    await repository.update(id, {
+      vaccinatedAt: trimmedDate,
+      hospitalName: hospitalName.trim() || null,
+      memo: memo.trim() || null,
+    });
+    setMode('view');
+    await load();
+  }
+
+  async function handleSaveCompleted() {
+    if (!vaccineName.trim()) {
+      setVaccineNameError('백신 이름을 입력해주세요');
+      return;
+    }
+    const trimmedDate = vaccinatedAt.trim();
+    if (!isValidDateString(trimmedDate)) {
+      setVaccinatedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
     const repository = createVaccinationRepository(db);
     await repository.update(id, {
       vaccineName,
-      vaccinatedAt: vaccinatedAt.trim(),
-      nextDueAt: nextDueAt.trim() || null,
+      vaccinatedAt: trimmedDate,
       hospitalName: hospitalName.trim() || null,
       memo: memo.trim() || null,
     });
-    setEditing(false);
+    setMode('view');
     await load();
   }
 
@@ -87,10 +120,10 @@ export default function VaccinationDetailScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen
         options={{
-          title: '예방접종',
+          title: isScheduleOnly ? '예방접종 일정' : '예방접종 기록',
           headerRight: () =>
-            record && !editing ? (
-              <Pressable accessibilityLabel="수정" onPress={() => setEditing(true)}>
+            record && mode === 'view' ? (
+              <Pressable accessibilityLabel="수정" onPress={() => setMode('editing')}>
                 <ThemedText type="default" themeColor="primary">
                   수정
                 </ThemedText>
@@ -99,7 +132,18 @@ export default function VaccinationDetailScreen() {
         }}
       />
       <SafeAreaView style={styles.safeArea}>
-        {record && editing && (
+        {record && isScheduleOnly && mode === 'view' && (
+          <>
+            <ThemedText type="heading">{record.vaccineName}</ThemedText>
+            <ThemedView style={styles.row}>
+              <ThemedText type="default">예정일 {record.nextDueAt}</ThemedText>
+              {record.nextDueAt ? <DDayChip daysUntil={daysUntil(record.nextDueAt)} /> : null}
+            </ThemedView>
+            <Button onPress={() => setMode('completing')}>완료하기</Button>
+          </>
+        )}
+
+        {record && isScheduleOnly && mode === 'editing' && (
           <>
             <Input
               label="백신 이름"
@@ -111,17 +155,7 @@ export default function VaccinationDetailScreen() {
               error={vaccineNameError}
             />
             <Input
-              label="접종일"
-              value={vaccinatedAt}
-              onChangeText={(text) => {
-                setVaccinatedAt(text);
-                setVaccinatedAtError('');
-              }}
-              error={vaccinatedAtError}
-            />
-            <Input
-              label="다음 접종 예정일"
-              optional
+              label="예정일"
               value={nextDueAt}
               onChangeText={(text) => {
                 setNextDueAt(text);
@@ -129,32 +163,73 @@ export default function VaccinationDetailScreen() {
               }}
               error={nextDueAtError}
             />
-            <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
-            <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
-            <Button onPress={handleSave}>저장하기</Button>
+            <Button onPress={handleSaveSchedule}>저장하기</Button>
           </>
         )}
-        {record && !editing && (
+
+        {record && isScheduleOnly && mode === 'completing' && (
+          <>
+            <ThemedText type="heading">접종을 완료했나요?</ThemedText>
+            <Input
+              label="실제 접종일"
+              value={vaccinatedAt}
+              onChangeText={(text) => {
+                setVaccinatedAt(text);
+                setVaccinatedAtError('');
+              }}
+              error={vaccinatedAtError}
+            />
+            <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
+            <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
+            <Button onPress={handleComplete}>완료하고 기록하기</Button>
+          </>
+        )}
+
+        {record && !isScheduleOnly && mode === 'view' && (
           <>
             <ThemedText type="heading">{record.vaccineName}</ThemedText>
             <ThemedText type="default">접종일 {record.vaccinatedAt}</ThemedText>
-            {record.nextDueAt ? (
-              <ThemedText type="default">다음 예정일 {record.nextDueAt}</ThemedText>
-            ) : null}
             {record.hospitalName ? (
               <ThemedText type="default">{record.hospitalName}</ThemedText>
             ) : null}
             {record.memo ? <ThemedText type="default">{record.memo}</ThemedText> : null}
           </>
         )}
+
+        {record && !isScheduleOnly && mode === 'editing' && (
+          <>
+            <Input
+              label="백신 이름"
+              value={vaccineName}
+              onChangeText={(text) => {
+                setVaccineName(text);
+                setVaccineNameError('');
+              }}
+              error={vaccineNameError}
+            />
+            <Input
+              label="실제 접종일"
+              value={vaccinatedAt}
+              onChangeText={(text) => {
+                setVaccinatedAt(text);
+                setVaccinatedAtError('');
+              }}
+              error={vaccinatedAtError}
+            />
+            <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
+            <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
+            <Button onPress={handleSaveCompleted}>저장하기</Button>
+          </>
+        )}
+
         <Button variant="destructive" onPress={() => setConfirmVisible(true)}>
-          기록 삭제
+          {isScheduleOnly ? '일정 삭제' : '기록 삭제'}
         </Button>
       </SafeAreaView>
       <ConfirmDialog
         visible={confirmVisible}
-        title="이 기록을 삭제할까요?"
-        description="삭제한 기록은 복구할 수 없어요."
+        title={isScheduleOnly ? '이 일정을 삭제할까요?' : '이 기록을 삭제할까요?'}
+        description="삭제한 내용은 복구할 수 없어요."
         onConfirm={handleDelete}
         onCancel={() => setConfirmVisible(false)}
       />
@@ -165,4 +240,9 @@ export default function VaccinationDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
 });

@@ -25,7 +25,7 @@ test('가장 가까운 일정 하나를 nextSchedule로 반환한다', () => {
       id: 'v1',
       petId: 'pet-1',
       vaccineName: '종합백신',
-      vaccinatedAt: '2026-06-01',
+      vaccinatedAt: null,
       nextDueAt: '2026-10-20',
       hospitalName: null,
       memo: null,

@@ -4,7 +4,8 @@ export type Checkup = {
   id: string;
   petId: string;
   checkupType: string;
-  checkedAt: string;
+  /** null이면 아직 완료하지 않은 예정 일정이다 — screen-layout.md §26. */
+  checkedAt: string | null;
   nextDueAt: string | null;
   hospitalName: string | null;
   memo: string | null;
@@ -15,7 +16,7 @@ export type Checkup = {
 export type CreateCheckupInput = {
   petId: string;
   checkupType: string;
-  checkedAt: string;
+  checkedAt?: string | null;
   nextDueAt?: string | null;
   hospitalName?: string | null;
   memo?: string | null;
@@ -27,7 +28,7 @@ type CheckupRow = {
   id: string;
   pet_id: string;
   checkup_type: string;
-  checked_at: string;
+  checked_at: string | null;
   next_due_at: string | null;
   hospital_name: string | null;
   memo: string | null;
@@ -60,7 +61,7 @@ export function createCheckupRepository(db: CheckupDb) {
       id: generateId(),
       petId: input.petId,
       checkupType: input.checkupType,
-      checkedAt: input.checkedAt,
+      checkedAt: input.checkedAt ?? null,
       nextDueAt: input.nextDueAt ?? null,
       hospitalName: input.hospitalName ?? null,
       memo: input.memo ?? null,

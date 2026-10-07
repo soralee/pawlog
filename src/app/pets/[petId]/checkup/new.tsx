@@ -11,6 +11,7 @@ import { Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
 import { isValidDateString, todayDateString } from '@/utils/date';
 
+/** "기록" 탭에서 추가하는 건강검진 — 이미 검진을 완료한 기록이다(screen-layout.md §26.2). */
 export default function NewCheckupScreen() {
   const db = useSQLiteContext();
   const repository = useMemo(() => createCheckupRepository(db), [db]);
@@ -21,8 +22,6 @@ export default function NewCheckupScreen() {
   const [checkupTypeError, setCheckupTypeError] = useState('');
   const [checkedAt, setCheckedAt] = useState(todayDateString());
   const [checkedAtError, setCheckedAtError] = useState('');
-  const [nextDueAt, setNextDueAt] = useState('');
-  const [nextDueAtError, setNextDueAtError] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [memo, setMemo] = useState('');
 
@@ -31,19 +30,21 @@ export default function NewCheckupScreen() {
       setCheckupTypeError('검진 종류를 입력해주세요');
       return;
     }
-    if (!isValidDateString(checkedAt.trim())) {
+    const trimmedDate = checkedAt.trim();
+    if (!isValidDateString(trimmedDate)) {
       setCheckedAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
       return;
     }
-    if (nextDueAt.trim() && !isValidDateString(nextDueAt.trim())) {
-      setNextDueAtError('YYYY-MM-DD 형식의 실제 날짜를 입력해주세요');
+    if (trimmedDate > todayDateString()) {
+      setCheckedAtError(
+        '미래 날짜는 기록으로 저장할 수 없어요. 예정이라면 "일정" 탭에서 등록해주세요.',
+      );
       return;
     }
     await repository.create({
       petId,
       checkupType,
-      checkedAt: checkedAt.trim(),
-      nextDueAt: nextDueAt.trim() || null,
+      checkedAt: trimmedDate,
       hospitalName: hospitalName.trim() || null,
       memo: memo.trim() || null,
     });
@@ -52,7 +53,7 @@ export default function NewCheckupScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: '건강검진' }} />
+      <Stack.Screen options={{ title: '건강검진 기록' }} />
       <SafeAreaView style={styles.safeArea}>
         <Input
           label="검진 종류"
@@ -64,23 +65,13 @@ export default function NewCheckupScreen() {
           error={checkupTypeError}
         />
         <Input
-          label="검진일"
+          label="실제 검진일"
           value={checkedAt}
           onChangeText={(text) => {
             setCheckedAt(text);
             setCheckedAtError('');
           }}
           error={checkedAtError}
-        />
-        <Input
-          label="다음 검진 예정일"
-          optional
-          value={nextDueAt}
-          onChangeText={(text) => {
-            setNextDueAt(text);
-            setNextDueAtError('');
-          }}
-          error={nextDueAtError}
         />
         <Input label="병원명" optional value={hospitalName} onChangeText={setHospitalName} />
         <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
