@@ -76,20 +76,37 @@
 
 ### Vaccinations
 
+예방접종은 `완료 기록`과 `예정 일정`의 의미를 구분한다.
+
+완료 기록:
 - 예방접종 이름
-- 접종일
-- 다음 예정일
+- 실제 접종일
+- 병원(선택)
 - 메모
-- 완료 상태
+
+예정 일정:
+- 예방접종 이름
+- 예정일
+- 알림
+- 상태(예정/지난 일정)
+
+미래 예정일은 완료 기록으로 취급하지 않는다.
 
 ### Checkups
 
+건강검진도 `완료 기록`과 `예정 일정`의 의미를 구분한다.
+
+완료 기록:
 - 건강검진 종류
-- 검진일
-- 다음 예정일
+- 실제 검진일
 - 병원
 - 메모
-- 완료 상태
+
+예정 일정:
+- 건강검진 종류
+- 예정일
+- 알림
+- 상태(예정/지난 일정)
 
 ### Medications
 
@@ -234,7 +251,128 @@ Home에 Shortcut Grid를 추가하지 않는다.
 
 ---
 
-## 6. Data Domains
+## 6. Records & Schedule Domain Rules
+
+Pawlog에서 **기록과 일정은 날짜가 아니라 실제 수행 여부로 구분한다.**
+
+> **Records = 실제로 일어난 일**  
+> **Schedule = 아직 해야 하는 일**
+
+이 규칙은 예방접종과 건강검진에서 특히 중요하다.
+
+### 6.1 Vaccination
+
+#### 일정에서 추가
+
+사용자가 일정 탭에서 미래 예방접종을 등록하면 아직 수행하지 않은 일이므로 **Schedule에만 표시**한다.
+
+예:
+
+```text
+보리 · 종합백신
+예정일 2026.10.20
+상태: 예정
+```
+
+이 데이터는 접종을 완료하기 전까지 Records의 완료 기록으로 노출하지 않는다.
+
+#### 기록에서 추가
+
+Records의 예방접종 추가는 **이미 실제로 접종한 사실을 기록하는 기능**이다.
+
+- 접종일은 실제 수행일
+- 미래 날짜를 완료 기록으로 저장하지 않는다.
+- 미래 접종을 입력하려는 경우 일정 탭에서 등록하도록 안내한다.
+
+#### 일정 완료
+
+예방접종 일정에서 `완료`를 선택하면:
+
+1. 실제 접종일을 확인한다.
+2. 필요하면 병원/메모 등 실제 수행 정보를 입력한다.
+3. 완료된 예방접종 기록으로 저장한다.
+4. 해당 항목은 Upcoming Schedule에서 제거된다.
+5. Records의 예방접종 기록에 노출된다.
+
+예정일이 지났다는 이유만으로 자동 완료하지 않는다.
+
+### 6.2 Checkup
+
+건강검진도 예방접종과 동일한 원칙을 적용한다.
+
+- 예정된 검진 → Schedule
+- 실제 완료한 검진 → Records
+- 일정 완료 → 실제 검진일 확인 → Records에 반영
+- 예정일 경과만으로 자동 완료하지 않음
+- 지난 미완료 일정은 Schedule에서 `지난 일정` 상태로 유지
+
+### 6.3 Medication
+
+복약은 예방접종/검진처럼 매 회차를 Records로 전환하지 않는다.
+
+Medication 자체가 기간과 반복 규칙을 가진 **복약 계획**이다.
+
+- 활성 Medication → Schedule/Home의 오늘의 복약에 필요한 Instance 표시
+- 반복 일정은 날짜별 DB Row를 대량 생성하지 않음
+- 종료된 Medication → 복약 관리의 종료 목록에서 확인
+- MVP에서는 매 복용 회차별 `복용 완료 기록`을 건강 기록 Timeline에 생성하지 않음
+
+### 6.4 Health / Weight / Expense
+
+다음은 기본적으로 **이미 발생한 사실을 기록**하는 도메인이다.
+
+- Health Record
+- Weight Record
+- Hospital Expense
+
+따라서 Records/Pet Detail에서 관리하며 Schedule 대상이 아니다.
+
+### 6.5 Past-due Schedule
+
+예정일이 지났지만 완료하지 않은 예방접종/검진은 기록으로 자동 이동하지 않는다.
+
+```text
+예정 → 날짜 경과 → 지난 일정
+                 ↓
+             사용자가 완료
+                 ↓
+               기록
+```
+
+Schedule에서는 지난 일정을 사용자가 놓치지 않도록 구분해 보여준다.
+
+### 6.6 Creation Entry Points
+
+```text
+Records > 기록 추가
+  건강 기록
+  예방접종 기록
+  건강검진 기록
+  체중 기록
+  병원비 기록
+
+Schedule > 일정 추가
+  예방접종 일정
+  건강검진 일정
+  복약 일정
+```
+
+동일한 `예방접종 추가`라는 모호한 문구 대신 Context에 따라 `예방접종 기록` / `예방접종 일정`처럼 의미를 구분한다.
+
+### 6.7 Visibility Matrix
+
+| Domain | Records | Schedule | Home Upcoming | Home Recent |
+| --- | --- | --- | --- | --- |
+| 건강 기록 | 완료/발생 기록 | - | - | O |
+| 예방접종 | 완료한 접종 | 미완료/지난 일정 | O | 완료 후 O |
+| 건강검진 | 완료한 검진 | 미완료/지난 일정 | O | 완료 후 O |
+| 복약 | 매 회차 기록하지 않음 | 활성 복약 계획 | 오늘 일정 O | 기본 제외 |
+| 체중 | 측정 기록 | - | - | O |
+| 병원비 | 발생 비용 | - | - | 필요 시 O |
+
+---
+
+## 7. Data Domains
 
 SQLite Source of Truth:
 
@@ -261,7 +399,7 @@ reminders
 
 ---
 
-## 7. Technical Direction
+## 8. Technical Direction
 
 ### Core Stack
 
@@ -328,7 +466,7 @@ SQLite 데이터를 Zustand에 다시 Cache하지 않는다.
 
 ---
 
-## 8. Project Structure
+## 9. Project Structure
 
 초기 구조:
 
@@ -363,7 +501,7 @@ src/
 
 ---
 
-## 9. Development Phases
+## 10. Development Phases
 
 ### Phase 0 — Setup
 
@@ -425,7 +563,7 @@ src/
 
 ---
 
-## 10. Notification Permission
+## 11. Notification Permission
 
 앱 최초 실행 시 Notification Permission을 바로 요청하지 않는다.
 
@@ -439,7 +577,7 @@ Contextual Permission Request를 기본으로 한다.
 
 ---
 
-## 11. Future Scope
+## 12. Future Scope
 
 MVP 출시 이후 검토한다.
 
@@ -455,7 +593,7 @@ MVP 구현 중에는 Future Scope를 선행 구현하지 않는다.
 
 ---
 
-## 12. Monetization Direction
+## 13. Monetization Direction
 
 MVP에서는 수익화를 구현하지 않는다.
 
@@ -473,7 +611,7 @@ MVP에서는 수익화를 구현하지 않는다.
 
 ---
 
-## 13. Product Identity
+## 14. Product Identity
 
 ```text
 Technical name: pawlog
@@ -486,7 +624,7 @@ Android Package: com.soralee.pawlog
 
 ---
 
-## 14. MVP Success Criteria
+## 15. MVP Success Criteria
 
 Pawlog MVP는 다음 흐름이 안정적으로 동작하면 성공으로 본다.
 
