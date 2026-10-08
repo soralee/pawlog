@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,16 +14,18 @@ import { Colors, Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
 import { createHealthRecordRepository } from '@/db/repositories/health-record.repository';
 import { createHospitalExpenseRepository } from '@/db/repositories/hospital-expense.repository';
-import { createPetRepository } from '@/db/repositories/pet.repository';
+import { createPetRepository, type Pet } from '@/db/repositories/pet.repository';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
 import { createWeightRecordRepository } from '@/db/repositories/weight-record.repository';
-import { useAppStore } from '@/stores/app.store';
+import { filterByPet, showsPetFilter, type PetFilterValue } from '@/features/pets/pet-filter';
 
 type RecordType = 'health' | 'vaccination' | 'checkup' | 'weight' | 'hospital-expense';
 type FilterKey = 'all' | RecordType;
 
 type TimelineEntry = {
   id: string;
+  petId: string;
+  petName: string;
   type: RecordType;
   date: string;
   title: string;
@@ -47,94 +49,103 @@ function monthGroupKey(dateStr: string): string {
 export default function RecordsScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const petRepository = useMemo(() => createPetRepository(db), [db]);
-  const selectedPetId = useAppStore((state) => state.selectedPetId);
-  const setSelectedPetId = useAppStore((state) => state.setSelectedPetId);
 
+  const [pets, setPets] = useState<Pet[]>([]);
   const [hasAnyPet, setHasAnyPet] = useState<boolean | null>(null);
+  const [petFilter, setPetFilter] = useState<PetFilterValue>('all');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [entries, setEntries] = useState<TimelineEntry[]>([]);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [petSelectVisible, setPetSelectVisible] = useState(false);
+  const [targetPetId, setTargetPetId] = useState<string | null>(null);
 
-  const ensureSelectedPet = useCallback(async () => {
-    if (selectedPetId) {
-      setHasAnyPet(true);
-      return;
-    }
-    const pets = await petRepository.listPets();
-    setHasAnyPet(pets.length > 0);
-    if (pets.length > 0) setSelectedPetId(pets[0].id);
-  }, [petRepository, selectedPetId, setSelectedPetId]);
+  const loadAll = useCallback(async () => {
+    const petList = await createPetRepository(db).listPets();
+    setPets(petList);
+    setHasAnyPet(petList.length > 0);
 
-  const loadEntries = useCallback(async () => {
-    if (!selectedPetId) return;
-    const [healthRecords, vaccinations, checkups, weightRecords, hospitalExpenses] =
-      await Promise.all([
-        createHealthRecordRepository(db).listByPet(selectedPetId),
-        createVaccinationRepository(db).listByPet(selectedPetId),
-        createCheckupRepository(db).listByPet(selectedPetId),
-        createWeightRecordRepository(db).listByPet(selectedPetId),
-        createHospitalExpenseRepository(db).listByPet(selectedPetId),
-      ]);
+    const perPet = await Promise.all(
+      petList.map(async (pet) => {
+        const [healthRecords, vaccinations, checkups, weightRecords, hospitalExpenses] =
+          await Promise.all([
+            createHealthRecordRepository(db).listByPet(pet.id),
+            createVaccinationRepository(db).listByPet(pet.id),
+            createCheckupRepository(db).listByPet(pet.id),
+            createWeightRecordRepository(db).listByPet(pet.id),
+            createHospitalExpenseRepository(db).listByPet(pet.id),
+          ]);
 
-    const all: TimelineEntry[] = [
-      ...healthRecords.map((r) => ({
-        id: r.id,
-        type: 'health' as const,
-        date: r.recordedAt,
-        title: '건강 기록',
-        subtitle: r.note,
-      })),
-      // 완료하지 않은(vaccinatedAt/checkedAt이 없는) 예정 일정은 "일정" 탭 몫이라 뺀다.
-      ...vaccinations
-        .filter((r) => r.vaccinatedAt)
-        .map((r) => ({
-          id: r.id,
-          type: 'vaccination' as const,
-          date: r.vaccinatedAt!,
-          title: r.vaccineName,
-          subtitle: r.hospitalName ?? undefined,
-        })),
-      ...checkups
-        .filter((r) => r.checkedAt)
-        .map((r) => ({
-          id: r.id,
-          type: 'checkup' as const,
-          date: r.checkedAt!,
-          title: r.checkupType,
-          subtitle: r.hospitalName ?? undefined,
-        })),
-      ...weightRecords.map((r) => ({
-        id: r.id,
-        type: 'weight' as const,
-        date: r.measuredAt,
-        title: `체중 ${r.weightKg}kg`,
-      })),
-      ...hospitalExpenses.map((r) => ({
-        id: r.id,
-        type: 'hospital-expense' as const,
-        date: r.spentAt,
-        title: `${r.amount.toLocaleString('ko-KR')}원`,
-        subtitle: [r.hospitalName, r.description].filter(Boolean).join(' · ') || undefined,
-      })),
-    ];
+        const petEntries: TimelineEntry[] = [
+          ...healthRecords.map((r) => ({
+            id: r.id,
+            petId: pet.id,
+            petName: pet.name,
+            type: 'health' as const,
+            date: r.recordedAt,
+            title: '건강 기록',
+            subtitle: r.note,
+          })),
+          // 완료하지 않은(vaccinatedAt/checkedAt이 없는) 예정 일정은 "일정" 탭 몫이라 뺀다.
+          ...vaccinations
+            .filter((r) => r.vaccinatedAt)
+            .map((r) => ({
+              id: r.id,
+              petId: pet.id,
+              petName: pet.name,
+              type: 'vaccination' as const,
+              date: r.vaccinatedAt!,
+              title: r.vaccineName,
+              subtitle: r.hospitalName ?? undefined,
+            })),
+          ...checkups
+            .filter((r) => r.checkedAt)
+            .map((r) => ({
+              id: r.id,
+              petId: pet.id,
+              petName: pet.name,
+              type: 'checkup' as const,
+              date: r.checkedAt!,
+              title: r.checkupType,
+              subtitle: r.hospitalName ?? undefined,
+            })),
+          ...weightRecords.map((r) => ({
+            id: r.id,
+            petId: pet.id,
+            petName: pet.name,
+            type: 'weight' as const,
+            date: r.measuredAt,
+            title: `체중 ${r.weightKg}kg`,
+          })),
+          ...hospitalExpenses.map((r) => ({
+            id: r.id,
+            petId: pet.id,
+            petName: pet.name,
+            type: 'hospital-expense' as const,
+            date: r.spentAt,
+            title: `${r.amount.toLocaleString('ko-KR')}원`,
+            subtitle: [r.hospitalName, r.description].filter(Boolean).join(' · ') || undefined,
+          })),
+        ];
+        return petEntries;
+      }),
+    );
+
+    const all = perPet.flat();
     all.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
     setEntries(all);
-  }, [db, selectedPetId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- SQLite(외부 시스템) 동기화용 마운트 시 fetch
-    void ensureSelectedPet();
-  }, [ensureSelectedPet]);
+  }, [db]);
 
   useFocusEffect(
     useCallback(() => {
       // 다른 화면에서 기록을 추가/수정/삭제하고 돌아왔을 때 최신 목록을 반영해야 한다.
-      void loadEntries();
-    }, [loadEntries]),
+      void loadAll();
+    }, [loadAll]),
   );
 
-  const filtered = filter === 'all' ? entries : entries.filter((entry) => entry.type === filter);
+  const showPetFilter = showsPetFilter(pets);
+  const byPet = filterByPet(entries, petFilter);
+  const filtered = filter === 'all' ? byPet : byPet.filter((entry) => entry.type === filter);
+  const showPetTag = showPetFilter && petFilter === 'all';
 
   const groups = useMemo(() => {
     const result: { key: string; items: TimelineEntry[] }[] = [];
@@ -150,24 +161,37 @@ export default function RecordsScreen() {
     return result;
   }, [filtered]);
 
+  function openAddFlow() {
+    if (pets.length === 0) return;
+    if (pets.length === 1) {
+      setTargetPetId(pets[0].id);
+      setSheetVisible(true);
+    } else {
+      setPetSelectVisible(true);
+    }
+  }
+
+  function choosePet(petId: string) {
+    setTargetPetId(petId);
+    setSheetVisible(true);
+  }
+
   function openNew(type: RecordType) {
-    // TODO(records-schedule-multi-pet): 펫이 2마리 이상이면 펫 선택을 먼저 띄워야 한다.
-    if (!selectedPetId) return;
-    if (type === 'health') router.push(`/pets/${selectedPetId}/health-record/new`);
-    else if (type === 'vaccination') router.push(`/pets/${selectedPetId}/vaccination/new`);
-    else if (type === 'checkup') router.push(`/pets/${selectedPetId}/checkup/new`);
-    else if (type === 'weight') router.push(`/pets/${selectedPetId}/weight/new`);
-    else router.push(`/pets/${selectedPetId}/hospital-expense/new`);
+    if (!targetPetId) return;
+    if (type === 'health') router.push(`/pets/${targetPetId}/health-record/new`);
+    else if (type === 'vaccination') router.push(`/pets/${targetPetId}/vaccination/new`);
+    else if (type === 'checkup') router.push(`/pets/${targetPetId}/checkup/new`);
+    else if (type === 'weight') router.push(`/pets/${targetPetId}/weight/new`);
+    else router.push(`/pets/${targetPetId}/hospital-expense/new`);
   }
 
   function openDetail(entry: TimelineEntry) {
-    if (!selectedPetId) return;
-    if (entry.type === 'health') router.push(`/pets/${selectedPetId}/health-record/${entry.id}`);
+    if (entry.type === 'health') router.push(`/pets/${entry.petId}/health-record/${entry.id}`);
     else if (entry.type === 'vaccination')
-      router.push(`/pets/${selectedPetId}/vaccination/${entry.id}`);
-    else if (entry.type === 'checkup') router.push(`/pets/${selectedPetId}/checkup/${entry.id}`);
-    else if (entry.type === 'weight') router.push(`/pets/${selectedPetId}/weight/${entry.id}`);
-    else router.push(`/pets/${selectedPetId}/hospital-expense/${entry.id}`);
+      router.push(`/pets/${entry.petId}/vaccination/${entry.id}`);
+    else if (entry.type === 'checkup') router.push(`/pets/${entry.petId}/checkup/${entry.id}`);
+    else if (entry.type === 'weight') router.push(`/pets/${entry.petId}/weight/${entry.id}`);
+    else router.push(`/pets/${entry.petId}/hospital-expense/${entry.id}`);
   }
 
   return (
@@ -176,7 +200,7 @@ export default function RecordsScreen() {
         <ThemedView style={styles.header}>
           <ThemedText type="title">기록</ThemedText>
           {hasAnyPet ? (
-            <Pressable accessibilityLabel="기록 추가" onPress={() => setSheetVisible(true)}>
+            <Pressable accessibilityLabel="기록 추가" onPress={openAddFlow}>
               <Ionicons name="add" size={24} color={Colors.light.primary} />
             </Pressable>
           ) : null}
@@ -190,6 +214,32 @@ export default function RecordsScreen() {
 
         {hasAnyPet && (
           <>
+            {showPetFilter && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterRow}
+              >
+                <Pressable
+                  accessibilityLabel="반려동물 전체"
+                  onPress={() => setPetFilter('all')}
+                  style={[styles.filterChip, petFilter === 'all' && styles.filterChipSelected]}
+                >
+                  <ThemedText type="small">전체</ThemedText>
+                </Pressable>
+                {pets.map((pet) => (
+                  <Pressable
+                    key={pet.id}
+                    accessibilityLabel={`${pet.name} 필터`}
+                    onPress={() => setPetFilter(pet.id)}
+                    style={[styles.filterChip, petFilter === pet.id && styles.filterChipSelected]}
+                  >
+                    <ThemedText type="small">{pet.name}</ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
               {FILTERS.map((option) => (
                 <Pressable
@@ -208,7 +258,7 @@ export default function RecordsScreen() {
                 title="아직 건강 기록이 없어요."
                 description="오늘부터 우리 아이의 건강을 하나씩 기록해 보세요."
                 ctaLabel="첫 기록 남기기"
-                onPressCta={() => setSheetVisible(true)}
+                onPressCta={openAddFlow}
               />
             ) : (
               <ScrollView>
@@ -220,7 +270,7 @@ export default function RecordsScreen() {
                     {group.items.map((entry) => (
                       <ListItem
                         key={entry.id}
-                        title={entry.title}
+                        title={showPetTag ? `[${entry.petName}] ${entry.title}` : entry.title}
                         subtitle={subtitleFor(entry)}
                         trailing={
                           <Ionicons
@@ -239,6 +289,13 @@ export default function RecordsScreen() {
           </>
         )}
       </SafeAreaView>
+
+      <OptionSheet
+        visible={petSelectVisible}
+        title="어느 반려동물의 기록인가요?"
+        onClose={() => setPetSelectVisible(false)}
+        options={pets.map((pet) => ({ label: pet.name, onPress: () => choosePet(pet.id) }))}
+      />
 
       <OptionSheet
         visible={sheetVisible}

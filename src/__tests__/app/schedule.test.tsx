@@ -12,7 +12,6 @@ import {
   createVaccinationRepository,
   type VaccinationDb,
 } from '@/db/repositories/vaccination.repository';
-import { useAppStore } from '@/stores/app.store';
 import { todayDateString } from '@/utils/date';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
@@ -40,8 +39,7 @@ test('반려동물이 없으면 안내 문구가 뜬다', async () => {
   ).toBeTruthy();
 });
 
-test('일정이 없으면 EmptyState가 뜨고, CTA를 누르면 일정 추가 시트가 열린다', async () => {
-  useAppStore.setState({ selectedPetId: null });
+test('일정이 없으면 EmptyState가 뜨고, 펫이 한 마리면 펫 선택 없이 바로 일정 추가 시트가 열린다', async () => {
   const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
   const pet = await petRepository.createPet({
     name: '보리',
@@ -53,6 +51,8 @@ test('일정이 없으면 EmptyState가 뜨고, CTA를 누르면 일정 추가 �
   await render(<ScheduleScreen />);
 
   expect(await screen.findByText('다가오는 일정이 없어요.')).toBeTruthy();
+  // 펫이 한 마리뿐이므로 펫 필터 Chip은 보이지 않는다(Graceful Mode).
+  expect(screen.queryByLabelText('반려동물 전체')).toBeNull();
 
   await fireEvent.press(screen.getByLabelText('일정 추가하기'));
   await fireEvent.press(await screen.findByLabelText('예방접종 일정'));
@@ -60,7 +60,7 @@ test('일정이 없으면 EmptyState가 뜨고, CTA를 누르면 일정 추가 �
   expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}/vaccination/new-schedule`);
 });
 
-test('접종/검진 일정이 필터로 좁혀지고 월/일 그룹으로 보인다', async () => {
+test('펫이 2마리 이상이면 펫 필터로 좁혀지고, 접종/검진 필터와 월/일 그룹으로 보인다', async () => {
   const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
   const pet = await petRepository.createPet({
     name: '뭉치',
@@ -68,8 +68,6 @@ test('접종/검진 일정이 필터로 좁혀지고 월/일 그룹으로 보인
     species: 'dog',
     gender: 'male',
   });
-  // 다른 테스트가 만든 펫이 fake db에 이미 있을 수 있어 이 테스트가 만든 펫을 명시적으로 선택한다.
-  useAppStore.setState({ selectedPetId: pet.id });
 
   const today = parseISO(todayDateString());
   const vaccinationDue = format(addDays(today, 5), 'yyyy-MM-dd');
@@ -90,6 +88,9 @@ test('접종/검진 일정이 필터로 좁혀지고 월/일 그룹으로 보인
 
   await render(<ScheduleScreen />);
 
+  // 펫이 2마리(보리/뭉치)이므로 펫 필터 Chip이 보이고, 뭉치로 좁혀서 본다.
+  await fireEvent.press(await screen.findByLabelText('뭉치 필터'));
+
   await waitFor(() => expect(screen.getByText('종합백신')).toBeTruthy());
   expect(screen.getByText('심장 검진')).toBeTruthy();
   expect(screen.getByText('D-5')).toBeTruthy();
@@ -99,4 +100,21 @@ test('접종/검진 일정이 필터로 좁혀지고 월/일 그룹으로 보인
 
   expect(screen.getByText('심장 검진')).toBeTruthy();
   expect(screen.queryByText('종합백신')).toBeNull();
+});
+
+test('"전체" 보기에서는 Row에 펫 태그가 붙고, "+"를 누르면 펫 선택 시트가 먼저 뜬다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  const pets = await petRepository.listPets();
+  const mungchi = pets.find((p) => p.name === '뭉치')!;
+
+  await render(<ScheduleScreen />);
+
+  // 기본 필터는 "전체"이므로 이전 테스트에서 만든 뭉치의 일정에 펫 태그가 붙어 보인다.
+  await waitFor(() => expect(screen.getByText('[뭉치] 종합백신')).toBeTruthy());
+
+  await fireEvent.press(screen.getByLabelText('일정 추가'));
+  await fireEvent.press(await screen.findByLabelText('뭉치'));
+  await fireEvent.press(await screen.findByLabelText('건강검진 일정'));
+
+  expect(mockPush).toHaveBeenCalledWith(`/pets/${mungchi.id}/checkup/new-schedule`);
 });

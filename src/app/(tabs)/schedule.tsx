@@ -3,7 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,15 +15,17 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
-import { createPetRepository } from '@/db/repositories/pet.repository';
+import { createPetRepository, type Pet } from '@/db/repositories/pet.repository';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
+import { filterByPet, showsPetFilter, type PetFilterValue } from '@/features/pets/pet-filter';
 import {
   aggregateSchedule,
   type ScheduleEntry,
   type ScheduleType,
 } from '@/features/schedule/aggregate-schedule';
-import { useAppStore } from '@/stores/app.store';
 import { daysUntil, todayDateString } from '@/utils/date';
+
+type TaggedScheduleEntry = ScheduleEntry & { petId: string; petName: string };
 
 type FilterKey = 'all' | ScheduleType;
 
@@ -33,10 +35,10 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'checkup', label: '검진' },
 ];
 
-type DayGroup = { day: string; weekday: string; items: ScheduleEntry[] };
+type DayGroup = { day: string; weekday: string; items: TaggedScheduleEntry[] };
 type MonthGroup = { month: string; days: DayGroup[] };
 
-function groupByMonthAndDay(entries: ScheduleEntry[]): MonthGroup[] {
+function groupByMonthAndDay(entries: TaggedScheduleEntry[]): MonthGroup[] {
   const monthGroups: MonthGroup[] = [];
   for (const entry of entries) {
     const parsed = parseISO(entry.date);
@@ -62,66 +64,91 @@ function groupByMonthAndDay(entries: ScheduleEntry[]): MonthGroup[] {
 export default function ScheduleScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const petRepository = useMemo(() => createPetRepository(db), [db]);
-  const selectedPetId = useAppStore((state) => state.selectedPetId);
-  const setSelectedPetId = useAppStore((state) => state.setSelectedPetId);
 
+  const [pets, setPets] = useState<Pet[]>([]);
   const [hasAnyPet, setHasAnyPet] = useState<boolean | null>(null);
+  const [petFilter, setPetFilter] = useState<PetFilterValue>('all');
   const [filter, setFilter] = useState<FilterKey>('all');
-  const [entries, setEntries] = useState<ScheduleEntry[]>([]);
+  const [entries, setEntries] = useState<TaggedScheduleEntry[]>([]);
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [petSelectVisible, setPetSelectVisible] = useState(false);
+  const [targetPetId, setTargetPetId] = useState<string | null>(null);
 
-  const ensureSelectedPet = useCallback(async () => {
-    if (selectedPetId) {
-      setHasAnyPet(true);
-      return;
-    }
-    const pets = await petRepository.listPets();
-    setHasAnyPet(pets.length > 0);
-    if (pets.length > 0) setSelectedPetId(pets[0].id);
-  }, [petRepository, selectedPetId, setSelectedPetId]);
+  const loadAll = useCallback(async () => {
+    const petList = await createPetRepository(db).listPets();
+    setPets(petList);
+    setHasAnyPet(petList.length > 0);
 
-  const loadEntries = useCallback(async () => {
-    if (!selectedPetId) return;
-    const [vaccinations, checkups] = await Promise.all([
-      createVaccinationRepository(db).listByPet(selectedPetId),
-      createCheckupRepository(db).listByPet(selectedPetId),
-    ]);
-    setEntries(aggregateSchedule(vaccinations, checkups));
-  }, [db, selectedPetId]);
+    const perPet = await Promise.all(
+      petList.map(async (pet) => {
+        const [vaccinations, checkups] = await Promise.all([
+          createVaccinationRepository(db).listByPet(pet.id),
+          createCheckupRepository(db).listByPet(pet.id),
+        ]);
+        return aggregateSchedule(vaccinations, checkups).map((entry) => ({
+          ...entry,
+          petId: pet.id,
+          petName: pet.name,
+        }));
+      }),
+    );
+
+    const all = perPet.flat();
+    all.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    setEntries(all);
+  }, [db]);
 
   useFocusEffect(
     useCallback(() => {
       // 접종/검진 등록·수정·삭제 후 돌아왔을 때 최신 일정을 반영해야 한다.
-      void ensureSelectedPet();
-      void loadEntries();
-    }, [ensureSelectedPet, loadEntries]),
+      void loadAll();
+    }, [loadAll]),
   );
 
-  const filtered = filter === 'all' ? entries : entries.filter((entry) => entry.type === filter);
+  const showPetFilter = showsPetFilter(pets);
+  const byPet = filterByPet(entries, petFilter);
+  const filtered = filter === 'all' ? byPet : byPet.filter((entry) => entry.type === filter);
+  const showPetTag = showPetFilter && petFilter === 'all';
   // 예정일이 지난 미완료 일정은 "지난 일정"으로 따로 모아 보여준다 — 자동 완료하지 않는다.
   const today = todayDateString();
   const overdue = filtered.filter((entry) => entry.date < today);
   const upcoming = filtered.filter((entry) => entry.date >= today);
-  const groups = useMemo(() => groupByMonthAndDay(upcoming), [upcoming]);
+  const groups = groupByMonthAndDay(upcoming);
+
+  function openAddFlow() {
+    if (pets.length === 0) return;
+    if (pets.length === 1) {
+      setTargetPetId(pets[0].id);
+      setSheetVisible(true);
+    } else {
+      setPetSelectVisible(true);
+    }
+  }
+
+  function choosePet(petId: string) {
+    setTargetPetId(petId);
+    setSheetVisible(true);
+  }
 
   function openNew(type: ScheduleType) {
-    // TODO(records-schedule-multi-pet): 펫이 2마리 이상이면 펫 선택을 먼저 띄워야 한다.
-    if (!selectedPetId) return;
+    if (!targetPetId) return;
     router.push(
       type === 'vaccination'
-        ? `/pets/${selectedPetId}/vaccination/new-schedule`
-        : `/pets/${selectedPetId}/checkup/new-schedule`,
+        ? `/pets/${targetPetId}/vaccination/new-schedule`
+        : `/pets/${targetPetId}/checkup/new-schedule`,
     );
   }
 
-  function openDetail(entry: ScheduleEntry) {
-    if (!selectedPetId) return;
+  function openDetail(entry: TaggedScheduleEntry) {
     router.push(
       entry.type === 'vaccination'
-        ? `/pets/${selectedPetId}/vaccination/${entry.id}`
-        : `/pets/${selectedPetId}/checkup/${entry.id}`,
+        ? `/pets/${entry.petId}/vaccination/${entry.id}`
+        : `/pets/${entry.petId}/checkup/${entry.id}`,
     );
+  }
+
+  function titleFor(entry: TaggedScheduleEntry): string {
+    return showPetTag ? `[${entry.petName}] ${entry.title}` : entry.title;
   }
 
   return (
@@ -130,7 +157,7 @@ export default function ScheduleScreen() {
         <ThemedView style={styles.header}>
           <ThemedText type="title">일정</ThemedText>
           {hasAnyPet ? (
-            <Pressable accessibilityLabel="일정 추가" onPress={() => setSheetVisible(true)}>
+            <Pressable accessibilityLabel="일정 추가" onPress={openAddFlow}>
               <Ionicons name="add" size={24} color={Colors.light.primary} />
             </Pressable>
           ) : null}
@@ -144,6 +171,32 @@ export default function ScheduleScreen() {
 
         {hasAnyPet && (
           <>
+            {showPetFilter && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterRow}
+              >
+                <Pressable
+                  accessibilityLabel="반려동물 전체"
+                  onPress={() => setPetFilter('all')}
+                  style={[styles.filterChip, petFilter === 'all' && styles.filterChipSelected]}
+                >
+                  <ThemedText type="small">전체</ThemedText>
+                </Pressable>
+                {pets.map((pet) => (
+                  <Pressable
+                    key={pet.id}
+                    accessibilityLabel={`${pet.name} 필터`}
+                    onPress={() => setPetFilter(pet.id)}
+                    style={[styles.filterChip, petFilter === pet.id && styles.filterChipSelected]}
+                  >
+                    <ThemedText type="small">{pet.name}</ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
               {FILTERS.map((option) => (
                 <Pressable
@@ -162,7 +215,7 @@ export default function ScheduleScreen() {
                 title="다가오는 일정이 없어요."
                 description="다음 접종·검진 예정일을 등록해 보세요."
                 ctaLabel="일정 추가하기"
-                onPressCta={() => setSheetVisible(true)}
+                onPressCta={openAddFlow}
               />
             ) : (
               <ScrollView>
@@ -174,7 +227,7 @@ export default function ScheduleScreen() {
                     {overdue.map((entry) => (
                       <ListItem
                         key={entry.id}
-                        title={entry.title}
+                        title={titleFor(entry)}
                         subtitle={entry.date}
                         trailing={<DDayChip daysUntil={daysUntil(entry.date)} />}
                         onPress={() => openDetail(entry)}
@@ -199,7 +252,7 @@ export default function ScheduleScreen() {
                           {dayGroup.items.map((entry) => (
                             <ListItem
                               key={entry.id}
-                              title={entry.title}
+                              title={titleFor(entry)}
                               trailing={<DDayChip daysUntil={daysUntil(entry.date)} />}
                               onPress={() => openDetail(entry)}
                             />
@@ -214,6 +267,13 @@ export default function ScheduleScreen() {
           </>
         )}
       </SafeAreaView>
+
+      <OptionSheet
+        visible={petSelectVisible}
+        title="어느 반려동물의 일정인가요?"
+        onClose={() => setPetSelectVisible(false)}
+        options={pets.map((pet) => ({ label: pet.name, onPress: () => choosePet(pet.id) }))}
+      />
 
       <OptionSheet
         visible={sheetVisible}
