@@ -96,7 +96,7 @@ export default function PetDetailScreen() {
           <>
             <ThemedView style={styles.profile}>
               <PetAvatar photoUri={pet.photoUri} size={96} />
-              <ThemedText type="title">{pet.name}</ThemedText>
+              <ThemedText type="display">{pet.name}</ThemedText>
               <ThemedText type="default" themeColor="textSecondary">
                 {formatAge(new Date(pet.birthDate))} · {pet.species === 'dog' ? '강아지' : '고양이'}{' '}
                 · {pet.gender === 'male' ? '남아' : '여아'}
@@ -104,9 +104,12 @@ export default function PetDetailScreen() {
             </ThemedView>
 
             <ThemedText type="heading">건강 관리</ThemedText>
-            <ListItem title="건강 기록" onPress={() => router.push('/records')} />
-            <ListItem title="예방접종" onPress={() => router.push('/records')} />
-            <ListItem title="건강검진" onPress={() => router.push('/records')} />
+            <ListItem
+              title="건강 기록"
+              onPress={() => router.push(`/pets/${petId}/health-record`)}
+            />
+            <ListItem title="예방접종" onPress={() => router.push(`/pets/${petId}/vaccination`)} />
+            <ListItem title="건강검진" onPress={() => router.push(`/pets/${petId}/checkup`)} />
             <ListItem title="체중" onPress={() => router.push(`/pets/${petId}/weight`)} />
             <ListItem title="복약" onPress={() => router.push(`/pets/${petId}/medication`)} />
             <ListItem
