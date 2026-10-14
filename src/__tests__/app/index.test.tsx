@@ -19,7 +19,6 @@ import {
   createVaccinationRepository,
   type VaccinationDb,
 } from '@/db/repositories/vaccination.repository';
-import { useAppStore } from '@/stores/app.store';
 import { todayDateString } from '@/utils/date';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
@@ -39,15 +38,13 @@ jest.mock('expo-router', () => ({
 afterEach(cleanup);
 
 test('반려동물이 없으면 안내 문구가 뜬다', async () => {
-  useAppStore.setState({ selectedPetId: null });
   await render(<HomeScreen />);
   expect(
     await screen.findByText('먼저 "내 반려동물" 탭에서 반려동물을 등록해주세요.'),
   ).toBeTruthy();
 });
 
-test('반려동물 정보와 대시보드 5개 섹션이 보이고, 전체보기를 누르면 기록 탭으로 이동한다', async () => {
-  useAppStore.setState({ selectedPetId: null });
+test('펫이 한 마리면 펫 카드와 대시보드 섹션이 보이고, 전체보기를 누르면 해당 탭으로 이동한다', async () => {
   const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
   const pet = await petRepository.createPet({
     name: '보리',
@@ -55,7 +52,6 @@ test('반려동물 정보와 대시보드 5개 섹션이 보이고, 전체보기
     species: 'dog',
     gender: 'male',
   });
-  useAppStore.setState({ selectedPetId: pet.id });
 
   const vaccinationRepo = createVaccinationRepository(mockDbInstance! as unknown as VaccinationDb);
   await vaccinationRepo.create({
@@ -91,12 +87,43 @@ test('반려동물 정보와 대시보드 5개 섹션이 보이고, 전체보기
   await render(<HomeScreen />);
 
   expect(await screen.findByText('보리')).toBeTruthy();
-  expect(screen.getByText('종합백신')).toBeTruthy();
-  expect(screen.getByText('광견병')).toBeTruthy();
-  expect(screen.getByText('심장 검진')).toBeTruthy();
-  expect(screen.getByText('영양제')).toBeTruthy();
-  expect(screen.getByText('85,000원')).toBeTruthy();
+  // 오늘 복용 중인 약이 있으므로 펫 카드의 actionLabel은 다음 일정보다 복약을 우선한다.
+  expect(screen.getByText('오늘 복약 21:00')).toBeTruthy();
+  expect(screen.getByText('[보리] 종합백신')).toBeTruthy();
+  expect(screen.getByText('[보리] 심장 검진')).toBeTruthy();
+  expect(screen.getByText('[보리] 광견병')).toBeTruthy();
+  expect(screen.getByText('[보리] 영양제')).toBeTruthy();
+  // 펫이 한 마리뿐이므로 병원비 펫별 Breakdown은 보이지 않고 전체 합계만 보인다.
+  expect(screen.getAllByText('85,000원')).toHaveLength(1);
 
-  await fireEvent.press(screen.getByLabelText('전체보기'));
+  await fireEvent.press(screen.getByLabelText('기록 전체보기'));
   expect(mockPush).toHaveBeenCalledWith('/records');
+
+  await fireEvent.press(screen.getByLabelText('일정 전체보기'));
+  expect(mockPush).toHaveBeenCalledWith('/schedule');
+});
+
+test('펫이 2마리 이상이면 병원비 펫별 Breakdown이 보이고, 각 펫의 항목이 함께 집계된다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  const pet = await petRepository.createPet({
+    name: '뭉치',
+    birthDate: '2019-03-01',
+    species: 'dog',
+    gender: 'male',
+  });
+
+  const expenseRepo = createHospitalExpenseRepository(
+    mockDbInstance! as unknown as HospitalExpenseDb,
+  );
+  await expenseRepo.create({ petId: pet.id, spentAt: todayDateString(), amount: 50000 });
+
+  await render(<HomeScreen />);
+
+  // 펫 이름은 펫 카드와 병원비 Breakdown 행 양쪽에 보인다.
+  expect(await screen.findAllByText('보리')).toHaveLength(2);
+  expect(screen.getAllByText('뭉치')).toHaveLength(2);
+  // 전체 합계(보리 85,000 + 뭉치 50,000)와 펫별 Breakdown이 함께 보인다.
+  expect(screen.getByText('135,000원')).toBeTruthy();
+  expect(screen.getByText('85,000원')).toBeTruthy();
+  expect(screen.getByText('50,000원')).toBeTruthy();
 });
