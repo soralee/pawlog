@@ -129,3 +129,13 @@ test('"전체" 보기에서는 Row에 펫 태그가 붙고, "+"를 누르면 펫
 
   expect(mockPush).toHaveBeenCalledWith(`/pets/${mungchi.id}/vaccination/new`);
 });
+
+test('다른 기록은 있지만 선택한 필터에 해당하는 기록이 없으면 "해당하는 기록이 없어요"를 보여준다', async () => {
+  await render(<RecordsScreen />);
+
+  await fireEvent.press(await screen.findByLabelText('뭉치 필터'));
+  await fireEvent.press(screen.getByLabelText('검진'));
+
+  expect(await screen.findByText('해당하는 기록이 없어요.')).toBeTruthy();
+  expect(screen.queryByText('아직 건강 기록이 없어요.')).toBeNull();
+});

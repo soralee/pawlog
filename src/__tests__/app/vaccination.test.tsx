@@ -119,7 +119,8 @@ test('상세 화면 — 미완료 일정을 "완료하기"로 완료 기록으�
   expect(await screen.findByText('예정일 2026-12-25')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('완료하기'));
-  await fireEvent.changeText(screen.getByLabelText('실제 접종일'), '2026-12-25');
+  // 실제 접종일은 예정일을 기본값으로 보여주고 사용자가 확인/수정할 수 있어야 한다.
+  expect(screen.getByLabelText('실제 접종일').props.value).toBe('2026-12-25');
   await fireEvent.press(screen.getByLabelText('완료하고 기록하기'));
 
   expect(await screen.findByText('접종일 2026-12-25')).toBeTruthy();

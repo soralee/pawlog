@@ -40,7 +40,8 @@ export default function CheckupDetailScreen() {
     setRecord(found);
     if (found) {
       setCheckupType(found.checkupType);
-      setCheckedAt(found.checkedAt ?? '');
+      // 완료하기 폼의 실제 검진일은 예정일을 기본값으로 보여주고 수정할 수 있게 한다.
+      setCheckedAt(found.checkedAt ?? found.nextDueAt ?? '');
       setNextDueAt(found.nextDueAt ?? '');
       setHospitalName(found.hospitalName ?? '');
       setMemo(found.memo ?? '');

@@ -143,6 +143,9 @@ export default function ScheduleScreen() {
   // 복약은 전체/복약 필터에서만 보이고, 접종/검진 단독 필터에서는 숨긴다.
   const visibleMedications =
     filter === 'all' || filter === 'medication' ? filterByPet(medications, petFilter) : [];
+  // 현재 필터 기준으로 아무것도 안 보일 때만 EmptyState를 보여준다(필터별 빈 화면 방지).
+  const nothingVisible =
+    overdue.length === 0 && upcoming.length === 0 && visibleMedications.length === 0;
 
   function openAddFlow() {
     if (pets.length === 0) return;
@@ -242,7 +245,7 @@ export default function ScheduleScreen() {
               ))}
             </ScrollView>
 
-            {entries.length === 0 && medications.length === 0 ? (
+            {nothingVisible ? (
               <EmptyState
                 title="다가오는 일정이 없어요."
                 description="다음 접종·검진·복약 일정을 등록해 보세요."

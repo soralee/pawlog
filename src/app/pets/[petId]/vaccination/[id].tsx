@@ -43,7 +43,8 @@ export default function VaccinationDetailScreen() {
     setRecord(found);
     if (found) {
       setVaccineName(found.vaccineName);
-      setVaccinatedAt(found.vaccinatedAt ?? '');
+      // 완료하기 폼의 실제 접종일은 예정일을 기본값으로 보여주고 수정할 수 있게 한다.
+      setVaccinatedAt(found.vaccinatedAt ?? found.nextDueAt ?? '');
       setNextDueAt(found.nextDueAt ?? '');
       setHospitalName(found.hospitalName ?? '');
       setMemo(found.memo ?? '');

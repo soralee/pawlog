@@ -148,6 +148,25 @@ test('활성 복약은 "오늘의 복약"에 보이고, "복약" 필터는 접�
   expect(screen.queryByText('[뭉치] 종합백신')).toBeNull();
 });
 
+test('다른 일정은 있지만 복약이 없는 펫으로 "복약" 필터를 보면 EmptyState를 보여준다(빈 화면 방지)', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  const pet = await petRepository.createPet({
+    name: '두부',
+    birthDate: '2022-02-02',
+    species: 'dog',
+    gender: 'male',
+  });
+  const vaccinationRepo = createVaccinationRepository(mockDbInstance! as unknown as VaccinationDb);
+  await vaccinationRepo.create({ petId: pet.id, vaccineName: '종합백신', nextDueAt: '2026-12-25' });
+
+  await render(<ScheduleScreen />);
+
+  await fireEvent.press(await screen.findByLabelText('두부 필터'));
+  await fireEvent.press(screen.getByLabelText('복약'));
+
+  expect(await screen.findByText('다가오는 일정이 없어요.')).toBeTruthy();
+});
+
 test('일정 추가 시트에서 "복약 일정"을 고르면 복약 등록 화면으로 이동한다', async () => {
   const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
   const pets = await petRepository.listPets();

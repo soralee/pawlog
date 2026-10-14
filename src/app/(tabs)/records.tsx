@@ -253,13 +253,22 @@ export default function RecordsScreen() {
               ))}
             </ScrollView>
 
-            {entries.length === 0 ? (
-              <EmptyState
-                title="아직 건강 기록이 없어요."
-                description="오늘부터 우리 아이의 건강을 하나씩 기록해 보세요."
-                ctaLabel="첫 기록 남기기"
-                onPressCta={openAddFlow}
-              />
+            {filtered.length === 0 ? (
+              entries.length === 0 ? (
+                <EmptyState
+                  title="아직 건강 기록이 없어요."
+                  description="오늘부터 우리 아이의 건강을 하나씩 기록해 보세요."
+                  ctaLabel="첫 기록 남기기"
+                  onPressCta={openAddFlow}
+                />
+              ) : (
+                <EmptyState
+                  title="해당하는 기록이 없어요."
+                  description="다른 필터를 선택하거나 새 기록을 추가해 보세요."
+                  ctaLabel="기록 추가하기"
+                  onPressCta={openAddFlow}
+                />
+              )
             ) : (
               <ScrollView>
                 {groups.map((group) => (
