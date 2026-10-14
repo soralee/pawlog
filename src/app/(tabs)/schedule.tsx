@@ -15,8 +15,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
+import {
+  createMedicationRepository,
+  type Medication,
+} from '@/db/repositories/medication.repository';
 import { createPetRepository, type Pet } from '@/db/repositories/pet.repository';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
+import { splitMedications } from '@/features/medication/split-medications';
 import { filterByPet, showsPetFilter, type PetFilterValue } from '@/features/pets/pet-filter';
 import {
   aggregateSchedule,
@@ -26,13 +31,16 @@ import {
 import { daysUntil, todayDateString } from '@/utils/date';
 
 type TaggedScheduleEntry = ScheduleEntry & { petId: string; petName: string };
+type TaggedMedication = { id: string; petId: string; petName: string; medication: Medication };
 
-type FilterKey = 'all' | ScheduleType;
+type AddType = ScheduleType | 'medication';
+type FilterKey = 'all' | AddType;
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'vaccination', label: '접종' },
   { key: 'checkup', label: '검진' },
+  { key: 'medication', label: '복약' },
 ];
 
 type DayGroup = { day: string; weekday: string; items: TaggedScheduleEntry[] };
@@ -70,6 +78,7 @@ export default function ScheduleScreen() {
   const [petFilter, setPetFilter] = useState<PetFilterValue>('all');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [entries, setEntries] = useState<TaggedScheduleEntry[]>([]);
+  const [medications, setMedications] = useState<TaggedMedication[]>([]);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [petSelectVisible, setPetSelectVisible] = useState(false);
   const [targetPetId, setTargetPetId] = useState<string | null>(null);
@@ -96,6 +105,20 @@ export default function ScheduleScreen() {
     const all = perPet.flat();
     all.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     setEntries(all);
+
+    // 복약은 1회성 일정이 아니라 활성 계획이라 날짜별로 보여주지 않고 "오늘의 복약"으로 묶는다.
+    const perPetMedications = await Promise.all(
+      petList.map(async (pet) => {
+        const medicationList = await createMedicationRepository(db).listByPet(pet.id);
+        return splitMedications(medicationList).active.map((medication) => ({
+          id: medication.id,
+          petId: pet.id,
+          petName: pet.name,
+          medication,
+        }));
+      }),
+    );
+    setMedications(perPetMedications.flat());
   }, [db]);
 
   useFocusEffect(
@@ -107,13 +130,19 @@ export default function ScheduleScreen() {
 
   const showPetFilter = showsPetFilter(pets);
   const byPet = filterByPet(entries, petFilter);
-  const filtered = filter === 'all' ? byPet : byPet.filter((entry) => entry.type === filter);
+  const filtered =
+    filter === 'all' || filter === 'medication'
+      ? byPet
+      : byPet.filter((entry) => entry.type === filter);
   const showPetTag = showPetFilter && petFilter === 'all';
   // 예정일이 지난 미완료 일정은 "지난 일정"으로 따로 모아 보여준다 — 자동 완료하지 않는다.
   const today = todayDateString();
-  const overdue = filtered.filter((entry) => entry.date < today);
-  const upcoming = filtered.filter((entry) => entry.date >= today);
+  const overdue = filter === 'medication' ? [] : filtered.filter((entry) => entry.date < today);
+  const upcoming = filter === 'medication' ? [] : filtered.filter((entry) => entry.date >= today);
   const groups = groupByMonthAndDay(upcoming);
+  // 복약은 전체/복약 필터에서만 보이고, 접종/검진 단독 필터에서는 숨긴다.
+  const visibleMedications =
+    filter === 'all' || filter === 'medication' ? filterByPet(medications, petFilter) : [];
 
   function openAddFlow() {
     if (pets.length === 0) return;
@@ -130,13 +159,11 @@ export default function ScheduleScreen() {
     setSheetVisible(true);
   }
 
-  function openNew(type: ScheduleType) {
+  function openNew(type: AddType) {
     if (!targetPetId) return;
-    router.push(
-      type === 'vaccination'
-        ? `/pets/${targetPetId}/vaccination/new-schedule`
-        : `/pets/${targetPetId}/checkup/new-schedule`,
-    );
+    if (type === 'vaccination') router.push(`/pets/${targetPetId}/vaccination/new-schedule`);
+    else if (type === 'checkup') router.push(`/pets/${targetPetId}/checkup/new-schedule`);
+    else router.push(`/pets/${targetPetId}/medication/new`);
   }
 
   function openDetail(entry: TaggedScheduleEntry) {
@@ -149,6 +176,11 @@ export default function ScheduleScreen() {
 
   function titleFor(entry: TaggedScheduleEntry): string {
     return showPetTag ? `[${entry.petName}] ${entry.title}` : entry.title;
+  }
+
+  function medicationTitleFor(entry: TaggedMedication): string {
+    const name = entry.medication.name;
+    return showPetTag ? `[${entry.petName}] ${name}` : name;
   }
 
   return (
@@ -210,15 +242,37 @@ export default function ScheduleScreen() {
               ))}
             </ScrollView>
 
-            {entries.length === 0 ? (
+            {entries.length === 0 && medications.length === 0 ? (
               <EmptyState
                 title="다가오는 일정이 없어요."
-                description="다음 접종·검진 예정일을 등록해 보세요."
+                description="다음 접종·검진·복약 일정을 등록해 보세요."
                 ctaLabel="일정 추가하기"
                 onPressCta={openAddFlow}
               />
             ) : (
               <ScrollView>
+                {visibleMedications.length > 0 && (
+                  <ThemedView style={styles.monthGroup}>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      오늘의 복약
+                    </ThemedText>
+                    {visibleMedications.map((entry) => (
+                      <ListItem
+                        key={entry.id}
+                        title={medicationTitleFor(entry)}
+                        subtitle={`${entry.medication.frequency} ${entry.medication.time}`}
+                        trailing={
+                          <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color={Colors.light.textMuted}
+                          />
+                        }
+                        onPress={() => router.push(`/pets/${entry.petId}/medication/${entry.id}`)}
+                      />
+                    ))}
+                  </ThemedView>
+                )}
                 {overdue.length > 0 && (
                   <ThemedView style={styles.monthGroup}>
                     <ThemedText type="small" themeColor="warning">
@@ -228,8 +282,14 @@ export default function ScheduleScreen() {
                       <ListItem
                         key={entry.id}
                         title={titleFor(entry)}
-                        subtitle={entry.date}
-                        trailing={<DDayChip daysUntil={daysUntil(entry.date)} />}
+                        subtitle={`${entry.date} · ${Math.abs(daysUntil(entry.date))}일 지남`}
+                        trailing={
+                          <Ionicons
+                            name="chevron-forward"
+                            size={20}
+                            color={Colors.light.textMuted}
+                          />
+                        }
                         onPress={() => openDetail(entry)}
                       />
                     ))}
@@ -282,6 +342,7 @@ export default function ScheduleScreen() {
         options={[
           { label: '예방접종 일정', onPress: () => openNew('vaccination') },
           { label: '건강검진 일정', onPress: () => openNew('checkup') },
+          { label: '복약 일정', onPress: () => openNew('medication') },
         ]}
       />
     </ThemedView>

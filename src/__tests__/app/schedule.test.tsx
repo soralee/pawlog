@@ -7,6 +7,10 @@ import { useEffect as mockUseEffect } from 'react';
 
 import ScheduleScreen from '@/app/(tabs)/schedule';
 import { createCheckupRepository, type CheckupDb } from '@/db/repositories/checkup.repository';
+import {
+  createMedicationRepository,
+  type MedicationDb,
+} from '@/db/repositories/medication.repository';
 import { createPetRepository, type PetDb } from '@/db/repositories/pet.repository';
 import {
   createVaccinationRepository,
@@ -117,4 +121,70 @@ test('"전체" 보기에서는 Row에 펫 태그가 붙고, "+"를 누르면 펫
   await fireEvent.press(await screen.findByLabelText('건강검진 일정'));
 
   expect(mockPush).toHaveBeenCalledWith(`/pets/${mungchi.id}/checkup/new-schedule`);
+});
+
+test('활성 복약은 "오늘의 복약"에 보이고, "복약" 필터는 접종/검진을 숨긴다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  const pets = await petRepository.listPets();
+  const mungchi = pets.find((p) => p.name === '뭉치')!;
+
+  const medicationRepo = createMedicationRepository(mockDbInstance! as unknown as MedicationDb);
+  await medicationRepo.create({
+    petId: mungchi.id,
+    name: '영양제',
+    startDate: '2026-01-01',
+    time: '21:00',
+    frequency: '매일',
+  });
+
+  await render(<ScheduleScreen />);
+
+  await waitFor(() => expect(screen.getByText('[뭉치] 영양제')).toBeTruthy());
+  expect(screen.getByText('매일 21:00')).toBeTruthy();
+
+  await fireEvent.press(screen.getByLabelText('복약'));
+
+  expect(screen.getByText('[뭉치] 영양제')).toBeTruthy();
+  expect(screen.queryByText('[뭉치] 종합백신')).toBeNull();
+});
+
+test('일정 추가 시트에서 "복약 일정"을 고르면 복약 등록 화면으로 이동한다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  const pets = await petRepository.listPets();
+  const bori = pets.find((p) => p.name === '보리')!;
+
+  await render(<ScheduleScreen />);
+
+  await fireEvent.press(screen.getByLabelText('일정 추가'));
+  await fireEvent.press(await screen.findByLabelText('보리'));
+  await fireEvent.press(await screen.findByLabelText('복약 일정'));
+
+  expect(mockPush).toHaveBeenCalledWith(`/pets/${bori.id}/medication/new`);
+});
+
+test('지난 일정은 D-day Chip 대신 "N일 지남" 텍스트로 표시한다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  const pet = await petRepository.createPet({
+    name: '초코',
+    birthDate: '2021-05-01',
+    species: 'cat',
+    gender: 'female',
+  });
+
+  const overdueDate = format(addDays(parseISO(todayDateString()), -5), 'yyyy-MM-dd');
+  const vaccinationRepo = createVaccinationRepository(mockDbInstance! as unknown as VaccinationDb);
+  await vaccinationRepo.create({
+    petId: pet.id,
+    vaccineName: '광견병',
+    nextDueAt: overdueDate,
+  });
+
+  await render(<ScheduleScreen />);
+
+  await fireEvent.press(await screen.findByLabelText('초코 필터'));
+
+  expect(await screen.findByText('지난 일정')).toBeTruthy();
+  expect(screen.getByText(`${overdueDate} · 5일 지남`)).toBeTruthy();
+  expect(screen.queryByText('D+5')).toBeNull();
+  expect(screen.queryByText('D-5')).toBeNull();
 });
