@@ -8,7 +8,7 @@ import type { WeightRecord } from '@/db/repositories/weight-record.repository';
 import { sumCurrentMonth } from '@/features/hospital-expense/monthly-total';
 import { splitMedications } from '@/features/medication/split-medications';
 import { aggregateSchedule, type ScheduleEntry } from '@/features/schedule/aggregate-schedule';
-import { todayDateString } from '@/utils/date';
+import { daysUntil, formatDDay, todayDateString } from '@/utils/date';
 
 export type RecentRecordType = 'health' | 'vaccination' | 'checkup' | 'weight';
 export type RecentRecord = {
@@ -60,10 +60,7 @@ function actionLabelFor(input: PetDashboardInput, today: string): string | null 
   }
   const nextSchedule = aggregateSchedule(input.vaccinations, input.checkups)[0];
   if (nextSchedule) {
-    const days = Math.ceil(
-      (new Date(nextSchedule.date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return `D-${days} ${nextSchedule.title}`;
+    return `${formatDDay(daysUntil(nextSchedule.date, today))} ${nextSchedule.title}`;
   }
   return null;
 }

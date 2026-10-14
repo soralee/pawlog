@@ -9,7 +9,7 @@ function generatePhotoFilename(): string {
 /** 이미지 선택기가 반환한 임시 URI를 앱 문서 디렉터리로 복사해 영구 보관한다. */
 export async function savePetPhoto(sourceUri: string): Promise<string> {
   if (!petPhotosDir.exists) {
-    petPhotosDir.create({ intermediates: true });
+    petPhotosDir.create({ intermediates: true, idempotent: true });
   }
   const destination = new File(petPhotosDir, generatePhotoFilename());
   await new File(sourceUri).copy(destination);

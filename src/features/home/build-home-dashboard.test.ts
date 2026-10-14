@@ -72,6 +72,26 @@ test('펫 카드의 actionLabel은 오늘 복약이 있으면 우선, 없으면 
   ]);
 });
 
+test('actionLabel은 지난 일정도 "D+N" 형태로 보여준다(음수 D-day 표시 버그 회귀 방지)', () => {
+  const bori = emptyInput(makePet('p1', '보리'));
+  bori.vaccinations = [
+    {
+      id: 'v1',
+      petId: 'p1',
+      vaccineName: '종합백신',
+      vaccinatedAt: null,
+      nextDueAt: '2026-10-10',
+      hospitalName: null,
+      memo: null,
+      createdAt: '',
+      updatedAt: '',
+    },
+  ];
+
+  const result = buildHomeDashboard([bori], '2026-10-14');
+  expect(result.petSummaries[0].actionLabel).toBe('D+4 종합백신');
+});
+
 test('여러 펫의 다가오는 일정을 날짜순으로 합쳐 펫 태그를 붙인다', () => {
   const bori = emptyInput(makePet('p1', '보리'));
   bori.vaccinations = [

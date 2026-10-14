@@ -32,3 +32,10 @@ export function todayDateString(): string {
 export function daysUntil(dateString: string, today: string = todayDateString()): number {
   return differenceInCalendarDays(parseISO(dateString), parseISO(today));
 }
+
+/** daysUntil()의 결과를 "오늘"/"D-N"/"D+N"(지남) 형태로 표시한다. */
+export function formatDDay(daysUntil: number): string {
+  if (daysUntil === 0) return '오늘';
+  if (daysUntil < 0) return `D+${Math.abs(daysUntil)}`;
+  return `D-${daysUntil}`;
+}

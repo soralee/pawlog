@@ -75,8 +75,15 @@ export function PetForm({
       quality: 0.7,
     });
     if (result.canceled) return;
-    const saved = await savePetPhoto(result.assets[0].uri);
-    setPhotoUri(saved);
+    try {
+      const saved = await savePetPhoto(result.assets[0].uri);
+      setPhotoUri(saved);
+    } catch (error) {
+      Alert.alert(
+        '사진을 저장하지 못했어요',
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 
   return (

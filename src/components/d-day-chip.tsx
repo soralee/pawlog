@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { formatDDay } from '@/utils/date';
 
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
@@ -17,9 +18,7 @@ type DDayChipProps = {
 
 function label(daysUntil: number | 'done'): string {
   if (daysUntil === 'done') return '완료';
-  if (daysUntil === 0) return '오늘';
-  if (daysUntil < 0) return `D+${Math.abs(daysUntil)}`;
-  return `D-${daysUntil}`;
+  return formatDDay(daysUntil);
 }
 
 function tone(daysUntil: number | 'done'): { background: string; text: string } {
