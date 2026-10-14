@@ -21,7 +21,7 @@ export function EmptyState({ title, description, ctaLabel, onPressCta }: EmptySt
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.placeholder} />
-      <ThemedText type="subtitle" style={styles.centerText}>
+      <ThemedText type="heading" style={styles.centerText}>
         {title}
       </ThemedText>
       {description ? (

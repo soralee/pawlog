@@ -15,7 +15,7 @@ import { createCheckupRepository } from '@/db/repositories/checkup.repository';
 import { createPetRepository, type Pet } from '@/db/repositories/pet.repository';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
 import { aggregateSchedule } from '@/features/schedule/aggregate-schedule';
-import { daysUntil, formatAge } from '@/utils/date';
+import { daysUntil, formatAge, formatDDay } from '@/utils/date';
 
 type PetCardData = { pet: Pet; nextScheduleLabel: string | null };
 
@@ -35,7 +35,7 @@ export default function PetsScreen() {
         ]);
         const next = aggregateSchedule(vaccinations, checkups)[0];
         const nextScheduleLabel = next
-          ? `다음 일정 · ${next.title} D-${daysUntil(next.date)}`
+          ? `다음 일정 · ${next.title} ${formatDDay(daysUntil(next.date))}`
           : null;
         return { pet, nextScheduleLabel };
       }),

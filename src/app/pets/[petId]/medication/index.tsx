@@ -38,18 +38,20 @@ export default function MedicationScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: '복약 관리' }} />
+      <Stack.Screen
+        options={{
+          title: '복약 관리',
+          headerRight: () => (
+            <Pressable
+              accessibilityLabel="복약 추가"
+              onPress={() => router.push(`/pets/${petId}/medication/new`)}
+            >
+              <Ionicons name="add" size={24} color={Colors.light.primary} />
+            </Pressable>
+          ),
+        }}
+      />
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">복약</ThemedText>
-          <Pressable
-            accessibilityLabel="복약 추가"
-            onPress={() => router.push(`/pets/${petId}/medication/new`)}
-          >
-            <Ionicons name="add" size={24} color={Colors.light.primary} />
-          </Pressable>
-        </ThemedView>
-
         {medications.length === 0 ? (
           <EmptyState
             title="등록된 복약이 없어요."
@@ -102,11 +104,6 @@ export default function MedicationScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.lg, gap: Spacing.md },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   endedLabel: {
     marginTop: Spacing.sm,
   },

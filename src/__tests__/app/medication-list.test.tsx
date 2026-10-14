@@ -21,7 +21,10 @@ jest.mock('expo-sqlite', () => ({
 const mockPush = jest.fn();
 let mockPetId = 'pet-empty';
 jest.mock('expo-router', () => ({
-  Stack: { Screen: () => null },
+  Stack: {
+    Screen: ({ options }: { options?: { headerRight?: () => unknown } }) =>
+      options?.headerRight ? options.headerRight() : null,
+  },
   useRouter: () => ({ push: mockPush }),
   useFocusEffect: (callback: () => void) => mockUseEffect(callback, [callback]),
   useLocalSearchParams: () => ({ petId: mockPetId }),

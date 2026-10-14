@@ -38,18 +38,20 @@ export default function HospitalExpenseScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: '병원비' }} />
+      <Stack.Screen
+        options={{
+          title: '병원비',
+          headerRight: () => (
+            <Pressable
+              accessibilityLabel="병원비 추가"
+              onPress={() => router.push(`/pets/${petId}/hospital-expense/new`)}
+            >
+              <Ionicons name="add" size={24} color={Colors.light.primary} />
+            </Pressable>
+          ),
+        }}
+      />
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">병원비</ThemedText>
-          <Pressable
-            accessibilityLabel="병원비 추가"
-            onPress={() => router.push(`/pets/${petId}/hospital-expense/new`)}
-          >
-            <Ionicons name="add" size={24} color={Colors.light.primary} />
-          </Pressable>
-        </ThemedView>
-
         {expenses.length === 0 ? (
           <EmptyState
             title="등록된 병원비가 없어요."
@@ -91,11 +93,6 @@ export default function HospitalExpenseScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.lg, gap: Spacing.md },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   summaryCard: {
     backgroundColor: Colors.light.primaryLight,
     borderRadius: Radius.largeCard,

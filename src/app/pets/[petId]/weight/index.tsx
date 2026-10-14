@@ -45,18 +45,20 @@ export default function WeightScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: '체중' }} />
+      <Stack.Screen
+        options={{
+          title: '체중',
+          headerRight: () => (
+            <Pressable
+              accessibilityLabel="체중 추가"
+              onPress={() => router.push(`/pets/${petId}/weight/new`)}
+            >
+              <Ionicons name="add" size={24} color={Colors.light.primary} />
+            </Pressable>
+          ),
+        }}
+      />
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">체중</ThemedText>
-          <Pressable
-            accessibilityLabel="체중 추가"
-            onPress={() => router.push(`/pets/${petId}/weight/new`)}
-          >
-            <Ionicons name="add" size={24} color={Colors.light.primary} />
-          </Pressable>
-        </ThemedView>
-
         {records.length === 0 ? (
           <EmptyState
             title="등록된 체중 기록이 없어요."
@@ -114,11 +116,6 @@ export default function WeightScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.lg, gap: Spacing.md },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   summaryCard: {
     backgroundColor: Colors.light.primaryLight,
     borderRadius: Radius.largeCard,
