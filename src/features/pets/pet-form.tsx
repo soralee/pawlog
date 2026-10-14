@@ -1,15 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as ImagePicker from 'expo-image-picker';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet } from 'react-native';
+import { Alert, Pressable, StyleSheet } from 'react-native';
 import { z } from 'zod';
 
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
+import { PetAvatar } from '@/components/pet-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import type { CreatePetInput, Gender, Species } from '@/db/repositories/pet.repository';
 import { isValidDateString } from '@/utils/date';
+
+import { savePetPhoto } from './pet-photo';
 
 const petFormSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요'),
@@ -25,6 +30,7 @@ type PetFormValues = z.infer<typeof petFormSchema>;
 
 type PetFormProps = {
   initialValues?: PetFormValues;
+  initialPhotoUri?: string | null;
   submitLabel?: string;
   onSubmit: (input: CreatePetInput) => void;
 };
@@ -39,19 +45,49 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'female', label: '여아' },
 ];
 
-export function PetForm({ initialValues, submitLabel = '등록', onSubmit }: PetFormProps) {
+export function PetForm({
+  initialValues,
+  initialPhotoUri = null,
+  submitLabel = '등록',
+  onSubmit,
+}: PetFormProps) {
   const { control, handleSubmit, formState, reset } = useForm<PetFormValues>({
     resolver: zodResolver(petFormSchema),
     defaultValues: initialValues ?? { name: '', birthDate: '', species: 'dog', gender: 'male' },
   });
+  const [photoUri, setPhotoUri] = useState<string | null>(initialPhotoUri);
 
   const submit = handleSubmit((values) => {
-    onSubmit(values);
+    onSubmit({ ...values, photoUri });
     if (!initialValues) reset();
   });
 
+  async function pickPhoto() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('권한이 필요해요', '사진 보관함 접근 권한을 허용해주세요.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled) return;
+    const saved = await savePetPhoto(result.assets[0].uri);
+    setPhotoUri(saved);
+  }
+
   return (
     <ThemedView style={styles.form}>
+      <Pressable accessibilityLabel="프로필 사진 선택" onPress={pickPhoto} style={styles.avatarRow}>
+        <PetAvatar photoUri={photoUri} size={80} />
+        <ThemedText type="small" themeColor="primary">
+          사진 선택
+        </ThemedText>
+      </Pressable>
+
       <Controller
         control={control}
         name="name"
@@ -129,6 +165,10 @@ export function PetForm({ initialValues, submitLabel = '등록', onSubmit }: Pet
 }
 
 const styles = StyleSheet.create({
+  avatarRow: {
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
   form: {
     gap: Spacing.sm,
   },

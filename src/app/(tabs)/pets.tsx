@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
+import { PetAvatar } from '@/components/pet-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing } from '@/constants/theme';
@@ -76,17 +77,20 @@ export default function PetsScreen() {
                 accessibilityLabel={pet.name}
                 onPress={() => router.push(`/pets/${pet.id}`)}
               >
-                <Card style={styles.card}>
-                  <ThemedText type="heading">{pet.name}</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {formatAge(new Date(pet.birthDate))} ·{' '}
-                    {pet.species === 'dog' ? '강아지' : '고양이'}
-                  </ThemedText>
-                  {nextScheduleLabel ? (
-                    <ThemedText type="small" themeColor="primary">
-                      {nextScheduleLabel}
+                <Card style={[styles.card, styles.cardRow]}>
+                  <PetAvatar photoUri={pet.photoUri} size={56} />
+                  <ThemedView style={styles.cardText}>
+                    <ThemedText type="heading">{pet.name}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {formatAge(new Date(pet.birthDate))} ·{' '}
+                      {pet.species === 'dog' ? '강아지' : '고양이'}
                     </ThemedText>
-                  ) : null}
+                    {nextScheduleLabel ? (
+                      <ThemedText type="small" themeColor="primary">
+                        {nextScheduleLabel}
+                      </ThemedText>
+                    ) : null}
+                  </ThemedView>
                 </Card>
               </Pressable>
             ))}
@@ -107,4 +111,6 @@ const styles = StyleSheet.create({
   },
   list: { gap: Spacing.sm },
   card: { gap: Spacing.xxs },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  cardText: { flex: 1, gap: Spacing.xxs },
 });

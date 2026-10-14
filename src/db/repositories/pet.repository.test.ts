@@ -54,6 +54,26 @@ test('수정하면 변경된 필드만 반영되고 updatedAt이 갱신된다', 
   expect(refetched?.name).toBe('보리보리');
 });
 
+test('photoUri를 등록·수정할 수 있다', async () => {
+  const repo = setup();
+  const created = await repo.createPet({
+    name: '보리',
+    birthDate: '2018-06-15',
+    species: 'dog',
+    gender: 'male',
+    photoUri: 'file:///document/pet-photos/a.jpg',
+  });
+  expect(created.photoUri).toBe('file:///document/pet-photos/a.jpg');
+
+  const updated = await repo.updatePet(created.id, {
+    photoUri: 'file:///document/pet-photos/b.jpg',
+  });
+  expect(updated?.photoUri).toBe('file:///document/pet-photos/b.jpg');
+
+  const refetched = await repo.getPet(created.id);
+  expect(refetched?.photoUri).toBe('file:///document/pet-photos/b.jpg');
+});
+
 test('존재하지 않는 id를 수정하면 null', async () => {
   const repo = setup();
   expect(await repo.updatePet('없는-id', { name: 'x' })).toBeNull();

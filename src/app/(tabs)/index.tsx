@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/card';
 import { DDayChip } from '@/components/d-day-chip';
 import { ListItem } from '@/components/list-item';
+import { PetAvatar } from '@/components/pet-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -122,6 +123,7 @@ export default function HomeScreen() {
                   onPress={() => router.push(`/pets/${pet.id}`)}
                 >
                   <Card style={styles.petCard}>
+                    <PetAvatar photoUri={pet.photoUri} size={40} />
                     <ThemedText type="default">{pet.name}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
                       {formatAge(new Date(pet.birthDate))} ·{' '}

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { ListItem } from '@/components/list-item';
+import { PetAvatar } from '@/components/pet-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -86,6 +87,7 @@ export default function PetDetailScreen() {
               species: pet.species,
               gender: pet.gender,
             }}
+            initialPhotoUri={pet.photoUri}
             submitLabel="저장하기"
             onSubmit={handleUpdate}
           />
@@ -93,6 +95,7 @@ export default function PetDetailScreen() {
         {pet && !editing && (
           <>
             <ThemedView style={styles.profile}>
+              <PetAvatar photoUri={pet.photoUri} size={96} />
               <ThemedText type="title">{pet.name}</ThemedText>
               <ThemedText type="default" themeColor="textSecondary">
                 {formatAge(new Date(pet.birthDate))} · {pet.species === 'dog' ? '강아지' : '고양이'}{' '}
@@ -104,7 +107,7 @@ export default function PetDetailScreen() {
             <ListItem title="건강 기록" onPress={() => router.push('/records')} />
             <ListItem title="예방접종" onPress={() => router.push('/records')} />
             <ListItem title="건강검진" onPress={() => router.push('/records')} />
-            <ListItem title="체중" onPress={() => router.push('/records')} />
+            <ListItem title="체중" onPress={() => router.push(`/pets/${petId}/weight`)} />
             <ListItem title="복약" onPress={() => router.push(`/pets/${petId}/medication`)} />
             <ListItem
               title="병원비"
@@ -131,5 +134,5 @@ export default function PetDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.sm },
-  profile: { gap: Spacing.xxs, marginBottom: Spacing.sm },
+  profile: { alignItems: 'center', gap: Spacing.xxs, marginBottom: Spacing.sm },
 });

@@ -19,6 +19,7 @@ export type CreatePetInput = {
   birthDate: string;
   species: Species;
   gender: Gender;
+  photoUri?: string | null;
 };
 
 /** Repository가 실제로 쓰는 SQLiteDatabase 메서드만 좁혀서 받는다 (ADR `260915-141837`) — 테스트에선 페이크로 대체 가능. */
@@ -58,7 +59,7 @@ export function createPetRepository(db: PetDb) {
     const pet: Pet = {
       id: generateId(),
       ...input,
-      photoUri: null,
+      photoUri: input.photoUri ?? null,
       createdAt: now,
       updatedAt: now,
     };
@@ -93,8 +94,16 @@ export function createPetRepository(db: PetDb) {
     if (!existing) return null;
     const updated: Pet = { ...existing, ...input, updatedAt: new Date().toISOString() };
     await db.runAsync(
-      'UPDATE pets SET name = ?, birth_date = ?, species = ?, gender = ?, updated_at = ? WHERE id = ?',
-      [updated.name, updated.birthDate, updated.species, updated.gender, updated.updatedAt, id],
+      'UPDATE pets SET name = ?, birth_date = ?, species = ?, gender = ?, photo_uri = ?, updated_at = ? WHERE id = ?',
+      [
+        updated.name,
+        updated.birthDate,
+        updated.species,
+        updated.gender,
+        updated.photoUri,
+        updated.updatedAt,
+        id,
+      ],
     );
     return updated;
   }
