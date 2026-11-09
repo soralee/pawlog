@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(41, 37, 36, 0.4)',
+    backgroundColor: Colors.light.overlay,
     padding: Spacing.lg,
   },
   card: {

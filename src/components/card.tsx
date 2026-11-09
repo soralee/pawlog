@@ -1,10 +1,10 @@
 import { StyleSheet, type ViewProps } from 'react-native';
 
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Colors, Elevation, Radius, Spacing } from '@/constants/theme';
 
 import { ThemedView } from './themed-view';
 
-/** design-guide.md §9.2 — Surface + Border로 계층을 표현한다(Shadow는 최소화). */
+/** coral-design-spec.md §2.1 — Surface + Border + Elevation.card 그림자. */
 export function Card({ style, ...rest }: ViewProps) {
   return <ThemedView type="surface" style={[styles.card, style]} {...rest} />;
 }
@@ -15,5 +15,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.light.border,
     padding: Spacing.md,
+    ...Elevation.card,
   },
 });

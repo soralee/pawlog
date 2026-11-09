@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native';
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -7,20 +8,29 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 /**
- * design-guide.md §12 — Illustration + 짧은 제목 + 한 문장 설명 + (선택) CTA.
- * 실제 일러스트 에셋은 아직 없어 자리표시자(원형)로 대체한다 — 나중에 교체.
+ * design-guide.md §20 — Small Illustration + 짧은 제목 + 한 문장 설명 + (선택) CTA.
+ * 새 이미지 Asset 대신 Ionicons + 토큰으로 Illustration을 표현한다.
  */
 type EmptyStateProps = {
   title: string;
   description?: string;
   ctaLabel?: string;
   onPressCta?: () => void;
+  icon?: keyof typeof Ionicons.glyphMap;
 };
 
-export function EmptyState({ title, description, ctaLabel, onPressCta }: EmptyStateProps) {
+export function EmptyState({
+  title,
+  description,
+  ctaLabel,
+  onPressCta,
+  icon = 'file-tray-outline',
+}: EmptyStateProps) {
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.placeholder} />
+      <ThemedView style={styles.iconCircle}>
+        <Ionicons name={icon} size={28} color={Colors.light.primary} />
+      </ThemedView>
       <ThemedText type="heading" style={styles.centerText}>
         {title}
       </ThemedText>
@@ -41,11 +51,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
     paddingHorizontal: Spacing.lg,
   },
-  placeholder: {
+  iconCircle: {
     width: 64,
     height: 64,
     borderRadius: Radius.full,
     backgroundColor: Colors.light.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   centerText: {
     textAlign: 'center',

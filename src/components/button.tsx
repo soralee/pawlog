@@ -5,8 +5,9 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { ThemedText } from './themed-text';
 
 /**
- * design-guide.md §9.1 — Primary(기본 Sage) / Secondary(White+Border) / Text(보조 행동) /
- * Destructive(삭제 전용, Danger).
+ * design-guide.md §10 & coral-design-spec.md §2.6–2.7 —
+ * Primary(Coral) / Secondary(Primary Light+Coral Border+Coral Text) /
+ * Text(Coral Text) / Destructive(삭제 전용, Danger).
  */
 export type ButtonVariant = 'primary' | 'secondary' | 'text' | 'destructive';
 
@@ -20,10 +21,10 @@ type ButtonProps = {
 };
 
 const TEXT_COLOR: Record<ButtonVariant, string> = {
-  primary: '#FFFFFF',
-  secondary: Colors.light.textPrimary,
-  text: Colors.light.textSecondary,
-  destructive: '#FFFFFF',
+  primary: Colors.light.onPrimary,
+  secondary: Colors.light.primary,
+  text: Colors.light.primary,
+  destructive: Colors.light.onPrimary,
 };
 
 export function Button({
@@ -43,7 +44,12 @@ export function Button({
       accessibilityState={{ disabled: isDisabled }}
       onPress={onPress}
       disabled={isDisabled}
-      style={[styles.base, styles[variant], isDisabled && styles.disabled]}
+      style={({ pressed }) => [
+        styles.base,
+        styles[variant],
+        pressed && !isDisabled && variant === 'primary' && styles.primaryPressed,
+        isDisabled && styles.disabled,
+      ]}
     >
       {loading ? (
         <ActivityIndicator color={TEXT_COLOR[variant]} size="small" />
@@ -58,7 +64,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 44,
+    minHeight: 48,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radius.button,
@@ -68,10 +74,13 @@ const styles = StyleSheet.create({
   primary: {
     backgroundColor: Colors.light.primary,
   },
+  primaryPressed: {
+    backgroundColor: Colors.light.primaryPressed,
+  },
   secondary: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: Colors.light.primaryLight,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: Colors.light.primary,
   },
   text: {
     backgroundColor: 'transparent',

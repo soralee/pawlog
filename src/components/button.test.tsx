@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
+import { Colors } from '@/constants/theme';
+
 import { Button } from './button';
 
-test('각 variant가 라벨과 함께 렌더된다', async () => {
+test('각 variant가 라벨과 함께 렌더되고 스펙 색상을 사용한다', async () => {
   await render(
     <>
       <Button variant="primary" onPress={() => {}}>
@@ -20,10 +22,14 @@ test('각 variant가 라벨과 함께 렌더된다', async () => {
     </>,
   );
 
-  expect(screen.getByText('Primary')).toBeTruthy();
-  expect(screen.getByText('Secondary')).toBeTruthy();
-  expect(screen.getByText('Text')).toBeTruthy();
-  expect(screen.getByText('Destructive')).toBeTruthy();
+  expect(screen.getByText('Primary')).toHaveStyle({ color: Colors.light.onPrimary });
+  expect(screen.getByText('Secondary')).toHaveStyle({ color: Colors.light.primary });
+  expect(screen.getByLabelText('Secondary')).toHaveStyle({
+    backgroundColor: Colors.light.primaryLight,
+    borderColor: Colors.light.primary,
+  });
+  expect(screen.getByText('Text')).toHaveStyle({ color: Colors.light.primary });
+  expect(screen.getByText('Destructive')).toHaveStyle({ color: Colors.light.onPrimary });
 });
 
 test('누르면 onPress가 호출된다', async () => {
