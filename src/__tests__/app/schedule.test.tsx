@@ -16,7 +16,12 @@ import {
   createVaccinationRepository,
   type VaccinationDb,
 } from '@/db/repositories/vaccination.repository';
-import { todayDateString } from '@/utils/date';
+import {
+  formatDateForDisplay,
+  formatOverdueScheduleDays,
+  formatTimeForDisplay,
+  todayDateString,
+} from '@/utils/date';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -92,6 +97,9 @@ test('펫이 2마리 이상이면 펫 필터로 좁혀지고, 접종/검진 필�
 
   await render(<ScheduleScreen />);
 
+  expect(screen.getByLabelText('예방접종')).toBeTruthy();
+  expect(screen.getByLabelText('건강검진')).toBeTruthy();
+
   // 펫이 2마리(보리/뭉치)이므로 펫 필터 Chip이 보이고, 뭉치로 좁혀서 본다.
   await fireEvent.press(await screen.findByLabelText('뭉치 필터'));
 
@@ -100,7 +108,7 @@ test('펫이 2마리 이상이면 펫 필터로 좁혀지고, 접종/검진 필�
   expect(screen.getByText('D-5')).toBeTruthy();
   expect(screen.getByText('D-10')).toBeTruthy();
 
-  await fireEvent.press(screen.getByLabelText('검진'));
+  await fireEvent.press(screen.getByLabelText('건강검진'));
 
   expect(screen.getByText('심장 검진')).toBeTruthy();
   expect(screen.queryByText('종합백신')).toBeNull();
@@ -140,7 +148,10 @@ test('활성 복약은 "오늘의 복약"에 보이고, "복약" 필터는 접�
   await render(<ScheduleScreen />);
 
   await waitFor(() => expect(screen.getByText('[뭉치] 영양제')).toBeTruthy());
-  expect(screen.getByText('매일 21:00')).toBeTruthy();
+  expect(screen.getByText('오늘')).toBeTruthy();
+  expect(screen.queryByText('오늘의 복약')).toBeNull();
+  expect(screen.getByText(`매일 · ${formatTimeForDisplay('21:00')}`)).toBeTruthy();
+  expect(screen.queryByText('D-0')).toBeNull();
 
   await fireEvent.press(screen.getByLabelText('복약'));
 
@@ -164,7 +175,7 @@ test('다른 일정은 있지만 복약이 없는 펫으로 "복약" 필터를 �
   await fireEvent.press(await screen.findByLabelText('두부 필터'));
   await fireEvent.press(screen.getByLabelText('복약'));
 
-  expect(await screen.findByText('다가오는 일정이 없어요.')).toBeTruthy();
+  expect(await screen.findByText('해당하는 일정이 없어요.')).toBeTruthy();
 });
 
 test('일정 추가 시트에서 "복약 일정"을 고르면 복약 등록 화면으로 이동한다', async () => {
@@ -181,7 +192,7 @@ test('일정 추가 시트에서 "복약 일정"을 고르면 복약 등록 화�
   expect(mockPush).toHaveBeenCalledWith(`/pets/${bori.id}/medication/new`);
 });
 
-test('지난 일정은 D-day Chip 대신 "N일 지남" 텍스트로 표시한다', async () => {
+test('지난 일정은 포맷된 날짜·N일 지남 본문으로 표시하고 D-day Chip은 없다', async () => {
   const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
   const pet = await petRepository.createPet({
     name: '초코',
@@ -192,7 +203,7 @@ test('지난 일정은 D-day Chip 대신 "N일 지남" 텍스트로 표시한다
 
   const overdueDate = format(addDays(parseISO(todayDateString()), -5), 'yyyy-MM-dd');
   const vaccinationRepo = createVaccinationRepository(mockDbInstance! as unknown as VaccinationDb);
-  await vaccinationRepo.create({
+  const overdueSchedule = await vaccinationRepo.create({
     petId: pet.id,
     vaccineName: '광견병',
     nextDueAt: overdueDate,
@@ -203,7 +214,26 @@ test('지난 일정은 D-day Chip 대신 "N일 지남" 텍스트로 표시한다
   await fireEvent.press(await screen.findByLabelText('초코 필터'));
 
   expect(await screen.findByText('지난 일정')).toBeTruthy();
-  expect(screen.getByText(`${overdueDate} · 5일 지남`)).toBeTruthy();
+  const overdueBody = `${formatDateForDisplay(overdueDate, 'schedule')} · ${formatOverdueScheduleDays(overdueDate)}`;
+  expect(screen.getByText(overdueBody)).toBeTruthy();
   expect(screen.queryByText('D+5')).toBeNull();
   expect(screen.queryByText('D-5')).toBeNull();
+
+  mockPush.mockClear();
+  await fireEvent.press(screen.getByLabelText('완료하기'));
+  expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}/vaccination/${overdueSchedule.id}`);
+});
+
+test('펫이 있으면 헤더에 원형 + 버튼(일정 추가)이 있다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  await petRepository.createPet({
+    name: '헤더테스트',
+    birthDate: '2018-06-15',
+    species: 'dog',
+    gender: 'male',
+  });
+
+  await render(<ScheduleScreen />);
+
+  expect(await screen.findByLabelText('일정 추가')).toBeTruthy();
 });

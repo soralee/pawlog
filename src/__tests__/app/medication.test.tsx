@@ -70,7 +70,7 @@ test('상세 화면 — 불러오고, 수정하고, 삭제 확인 다이얼로�
   await fireEvent.changeText(screen.getByLabelText('복용 시간'), '22:00');
   await fireEvent.press(screen.getByLabelText('저장하기'));
 
-  expect(await screen.findByText('매일 22:00')).toBeTruthy();
+  expect(await screen.findByText('매일 · 오후 10:00')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('복약 삭제'));
   await fireEvent.press(screen.getByLabelText('삭제'));

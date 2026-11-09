@@ -9,6 +9,9 @@ import {
   createMedicationRepository,
   type MedicationDb,
 } from '@/db/repositories/medication.repository';
+import { formatDateForDisplay, todayDateString } from '@/utils/date';
+
+const BUNDLE_B_FIXED_NOW = new Date('2026-11-09T12:00:00+09:00');
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -69,4 +72,47 @@ test('복용 중/종료된 복약이 분리되어 보인다', async () => {
   expect(screen.getByText('복용 중')).toBeTruthy();
   expect(screen.getByText('종료된 복약')).toBeTruthy();
   expect(screen.getByText('항생제')).toBeTruthy();
+  expect(
+    screen.getByText(
+      `${formatDateForDisplay('2026-01-01', 'list')} - ${formatDateForDisplay('2026-01-10', 'list')}`,
+    ),
+  ).toBeTruthy();
+});
+
+describe('오늘의 복약 Today Summary', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(BUNDLE_B_FIXED_NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('isMedicationDueToday 기준 개수 — 미래 시작 복약은 제외한다', async () => {
+    mockPetId = 'pet-today-count';
+    mockDbInstance ??= mockCreateFakeSqliteDatabase();
+
+    const repository = createMedicationRepository(mockDbInstance! as unknown as MedicationDb);
+    await repository.create({
+      petId: 'pet-today-count',
+      name: '오늘약',
+      startDate: todayDateString(),
+      time: '09:00',
+      frequency: '매일',
+    });
+    await repository.create({
+      petId: 'pet-today-count',
+      name: '미래약',
+      startDate: '2026-12-01',
+      time: '09:00',
+      frequency: '매일',
+    });
+
+    await render(<MedicationScreen />);
+
+    expect(await screen.findByText('1개의 복약 일정이 있어요.')).toBeTruthy();
+    expect(screen.getByText('오늘약')).toBeTruthy();
+    expect(screen.getByText('미래약')).toBeTruthy();
+  });
 });

@@ -19,6 +19,15 @@ import {
   type VaccinationDb,
 } from '@/db/repositories/vaccination.repository';
 
+async function pressUnselectedFilterChip(label: string) {
+  const buttons = screen.getAllByRole('button', { name: label });
+  const chip = buttons.find((node) => node.props.accessibilityState?.selected === false);
+  if (!chip) {
+    throw new Error(`선택되지 않은 필터 칩을 찾지 못함: ${label}`);
+  }
+  await fireEvent.press(chip);
+}
+
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
   useSQLiteContext: () => {
@@ -62,7 +71,7 @@ test('기록이 없으면 EmptyState가 뜨고, 펫이 한 마리면 펫 선택 
   expect(screen.queryByLabelText('반려동물 전체')).toBeNull();
 
   await fireEvent.press(screen.getByLabelText('첫 기록 남기기'));
-  await fireEvent.press(await screen.findByLabelText('건강 기록'));
+  await fireEvent.press(await screen.findByTestId('option-chevron-건강 기록'));
 
   expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}/health-record/new`);
 });
@@ -100,17 +109,19 @@ test('펫이 2마리 이상이면 펫 필터로 좁혀지고, 종류 필터와 �
   await fireEvent.press(await screen.findByLabelText('뭉치 필터'));
 
   await waitFor(() => expect(screen.getByText('종합백신')).toBeTruthy());
-  expect(screen.getByText('건강 기록')).toBeTruthy();
+  expect(screen.getByText('08.10 · 구토함')).toBeTruthy();
   expect(screen.getByText('40,000원')).toBeTruthy();
   expect(screen.getByText('2026년 9월')).toBeTruthy();
   expect(screen.getByText('2026년 8월')).toBeTruthy();
 
-  await fireEvent.press(screen.getByLabelText('병원비'));
+  await pressUnselectedFilterChip('병원비');
 
-  expect(screen.getByText('40,000원')).toBeTruthy();
-  expect(screen.getByText(/예방접종/)).toBeTruthy();
-  expect(screen.queryByText('건강 기록')).toBeNull();
-  expect(screen.queryByText('종합백신')).toBeNull();
+  await waitFor(() => {
+    expect(screen.getByText('40,000원')).toBeTruthy();
+    expect(screen.getByText('09.15 · 예방접종')).toBeTruthy();
+    expect(screen.queryByText('08.10 · 구토함')).toBeNull();
+    expect(screen.queryByText('종합백신')).toBeNull();
+  });
 });
 
 test('"전체" 보기에서는 Row에 펫 태그가 붙고, "+"를 누르면 펫 선택 시트가 먼저 뜬다', async () => {
@@ -125,7 +136,7 @@ test('"전체" 보기에서는 Row에 펫 태그가 붙고, "+"를 누르면 펫
 
   await fireEvent.press(screen.getByLabelText('기록 추가'));
   await fireEvent.press(await screen.findByLabelText('뭉치'));
-  await fireEvent.press(await screen.findByLabelText('예방접종 기록'));
+  await fireEvent.press(await screen.findByTestId('option-chevron-예방접종'));
 
   expect(mockPush).toHaveBeenCalledWith(`/pets/${mungchi.id}/vaccination/new`);
 });
@@ -134,8 +145,42 @@ test('다른 기록은 있지만 선택한 필터에 해당하는 기록이 없�
   await render(<RecordsScreen />);
 
   await fireEvent.press(await screen.findByLabelText('뭉치 필터'));
-  await fireEvent.press(screen.getByLabelText('검진'));
+  await pressUnselectedFilterChip('건강검진');
 
   expect(await screen.findByText('해당하는 기록이 없어요.')).toBeTruthy();
   expect(screen.queryByText('아직 건강 기록이 없어요.')).toBeNull();
+});
+
+test('기록 추가 시트에 복약을 포함한 6가지 기록 유형이 있다', async () => {
+  mockDbInstance = mockCreateFakeSqliteDatabase();
+  const petRepository = createPetRepository(mockDbInstance as unknown as PetDb);
+  await petRepository.createPet({
+    name: '시트테스트',
+    birthDate: '2020-01-01',
+    species: 'dog',
+    gender: 'male',
+  });
+
+  await render(<RecordsScreen />);
+
+  await fireEvent.press(await screen.findByLabelText('기록 추가'));
+
+  const labels = ['건강 기록', '예방접종', '건강검진', '복약', '체중', '병원비'];
+  for (const label of labels) {
+    expect((await screen.findAllByLabelText(label)).length).toBeGreaterThanOrEqual(1);
+  }
+});
+
+test('펫이 있으면 헤더에 원형 + 버튼(기록 추가)이 있다', async () => {
+  const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
+  await petRepository.createPet({
+    name: '헤더테스트',
+    birthDate: '2018-06-15',
+    species: 'dog',
+    gender: 'male',
+  });
+
+  await render(<RecordsScreen />);
+
+  expect(await screen.findByLabelText('기록 추가')).toBeTruthy();
 });

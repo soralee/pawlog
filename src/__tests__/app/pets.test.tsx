@@ -29,6 +29,11 @@ jest.mock('expo-router', () => ({
 
 afterEach(cleanup);
 
+test('헤더에 원형 + 버튼(반려동물 추가)이 있다', async () => {
+  await render(<PetsScreen />);
+  expect(await screen.findByLabelText('반려동물 추가')).toBeTruthy();
+});
+
 test('반려동물이 없으면 EmptyState가 뜨고, CTA를 누르면 등록 화면으로 이동한다', async () => {
   await render(<PetsScreen />);
 
@@ -55,7 +60,11 @@ test('등록된 반려동물 카드가 보이고, 누르면 Pet Detail로 이동
   expect(mockPush).toHaveBeenCalledWith(`/pets/${pet.id}`);
 });
 
-test('지난 일정이 있으면 카드에 "D+N" 형태로 표시한다(음수 D-day 표시 버그 회귀 방지)', async () => {
+test('지난 일정만 있으면 카드에 "다가오는 일정 없음"이고 경과 일정 문구는 넣지 않는다', async () => {
+  mockDbInstance = mockCreateFakeSqliteDatabase();
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2026-11-09T12:00:00+09:00'));
+
   const petRepository = createPetRepository(mockDbInstance! as unknown as PetDb);
   const pet = await petRepository.createPet({
     name: '나비',
@@ -73,5 +82,9 @@ test('지난 일정이 있으면 카드에 "D+N" 형태로 표시한다(음수 D
 
   await render(<PetsScreen />);
 
-  expect(await screen.findByText('다음 일정 · 광견병 D+4')).toBeTruthy();
+  await waitFor(() => expect(screen.getByText('다가오는 일정 없음')).toBeTruthy());
+  expect(screen.queryByText(/다음 일정 · 광견병/)).toBeNull();
+  expect(screen.queryByText(/지남/)).toBeNull();
+
+  jest.useRealTimers();
 });

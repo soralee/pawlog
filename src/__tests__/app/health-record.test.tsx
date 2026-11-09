@@ -9,6 +9,7 @@ import {
   createHealthRecordRepository,
   type HealthRecordDb,
 } from '@/db/repositories/health-record.repository';
+import { createPetRepository, type PetDb } from '@/db/repositories/pet.repository';
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -32,10 +33,21 @@ jest.mock('expo-router', () => ({
 }));
 
 test('등록 화면 — 유효성 검사 후 저장하면 repository에 반영되고 뒤로 간다', async () => {
-  mockPetId = 'pet-1';
+  mockDbInstance ??= mockCreateFakeSqliteDatabase();
+  const petRepository = createPetRepository(mockDbInstance as unknown as PetDb);
+  const pet = await petRepository.createPet({
+    name: '보리',
+    birthDate: '2018-06-15',
+    species: 'dog',
+    gender: 'male',
+  });
+  mockPetId = pet.id;
   mockBack.mockClear();
 
   await render(<NewHealthRecordScreen />);
+
+  // Form 상단에 대상 Pet이 표시되어야 한다(ui-redesign-plan.md §5.6).
+  expect(await screen.findByText('보리')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('저장하기'));
   expect(await screen.findByText('메모를 입력해주세요')).toBeTruthy();
@@ -46,7 +58,7 @@ test('등록 화면 — 유효성 검사 후 저장하면 repository에 반영�
 
   expect(mockBack).toHaveBeenCalledTimes(1);
   const repository = createHealthRecordRepository(mockDbInstance! as unknown as HealthRecordDb);
-  const list = await repository.listByPet('pet-1');
+  const list = await repository.listByPet(pet.id);
   expect(list.map((r) => r.note)).toEqual(['구토함']);
 });
 
@@ -63,6 +75,8 @@ test('상세 화면 — 불러오고, 수정하고, 삭제 확인 다이얼로�
   await render(<HealthRecordDetailScreen />);
 
   expect(await screen.findByText('구토함')).toBeTruthy();
+  expect(screen.getByText('기록 삭제')).toBeTruthy();
+  expect(screen.getByLabelText('기록 삭제')).toBeTruthy();
 
   await fireEvent.press(screen.getByLabelText('수정'));
   await fireEvent.changeText(screen.getByLabelText('메모'), '구토 후 정상 식사');

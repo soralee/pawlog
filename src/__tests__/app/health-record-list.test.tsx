@@ -5,6 +5,7 @@ import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/t
 import { useEffect as mockUseEffect } from 'react';
 
 import HealthRecordScreen from '@/app/pets/[petId]/health-record/index';
+import { formatDateForDisplay } from '@/utils/date';
 import {
   createHealthRecordRepository,
   type HealthRecordDb,
@@ -53,6 +54,6 @@ test('기록 목록이 보이고, 항목을 누르면 상세로 이동한다', a
 
   await waitFor(() => expect(screen.getByText('구토 증상')).toBeTruthy());
 
-  await fireEvent.press(screen.getByText('2026-10-01'));
+  await fireEvent.press(screen.getByText(formatDateForDisplay('2026-10-01', 'list')));
   expect(mockPush).toHaveBeenCalledWith(`/pets/pet-one/health-record/${created.id}`);
 });

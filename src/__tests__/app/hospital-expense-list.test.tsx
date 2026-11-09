@@ -67,7 +67,8 @@ test('이번 달 합계와 목록이 보인다', async () => {
 
   await render(<HospitalExpenseScreen />);
 
-  await waitFor(() => expect(screen.getByText('125,000원')).toBeTruthy());
+  await waitFor(() => expect(screen.getByText('이번 달 병원비')).toBeTruthy());
+  expect(screen.getByText('125,000원')).toBeTruthy();
   expect(screen.getByText('85,000원')).toBeTruthy();
   expect(screen.getByText('40,000원')).toBeTruthy();
   expect(screen.getByText(/건강검진/)).toBeTruthy();

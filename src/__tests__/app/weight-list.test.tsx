@@ -1,18 +1,28 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { format, parseISO, subMonths } from 'date-fns';
+import { StyleSheet } from 'react-native';
 
 // jest.mock 팩토리는 호이스팅되어 "mock"으로 시작하는 이름의 외부 변수만 참조할 수 있다.
 import { createFakeSqliteDatabase as mockCreateFakeSqliteDatabase } from '@/db/testing/fake-sqlite-database';
 import { useEffect as mockUseEffect } from 'react';
 
 import WeightScreen from '@/app/pets/[petId]/weight/index';
+import { computeWeightChartScale } from '@/features/weight/weight-chart-scale';
+import { Colors } from '@/constants/theme';
 import {
   createWeightRecordRepository,
   type WeightRecordDb,
 } from '@/db/repositories/weight-record.repository';
 import { todayDateString } from '@/utils/date';
 
-jest.mock('react-native-gifted-charts', () => ({ LineChart: () => null }));
+type LineChartPropsMock = Record<string, unknown>;
+let mockLastLineChartProps: LineChartPropsMock | null = null;
+jest.mock('react-native-gifted-charts', () => ({
+  LineChart: (props: LineChartPropsMock) => {
+    mockLastLineChartProps = props;
+    return null;
+  },
+}));
 
 let mockDbInstance: ReturnType<typeof mockCreateFakeSqliteDatabase> | null = null;
 jest.mock('expo-sqlite', () => ({
@@ -34,7 +44,10 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ petId: mockPetId }),
 }));
 
-afterEach(cleanup);
+afterEach(async () => {
+  mockLastLineChartProps = null;
+  await cleanup();
+});
 
 test('체중 기록이 없으면 EmptyState가 뜨고, CTA를 누르면 등록 화면으로 이동한다', async () => {
   mockPetId = 'pet-empty';
@@ -47,16 +60,18 @@ test('체중 기록이 없으면 EmptyState가 뜨고, CTA를 누르면 등록 �
   expect(mockPush).toHaveBeenCalledWith('/pets/pet-empty/weight/new');
 });
 
-test('기록이 1개뿐이면 현재 체중만 보이고 변화량은 보이지 않는다', async () => {
+test('기록이 1개뿐이면 그래프 대신 안내 문구를 보여주고 변화량은 없다', async () => {
   mockPetId = 'pet-one';
   const repository = createWeightRecordRepository(mockDbInstance! as unknown as WeightRecordDb);
   await repository.create({ petId: 'pet-one', measuredAt: todayDateString(), weightKg: 4.3 });
 
   await render(<WeightScreen />);
 
-  // "현재" 요약 카드와 목록 행 양쪽에 같은 체중이 보인다.
-  expect(await screen.findAllByText('4.3kg')).toHaveLength(2);
+  expect(await screen.findByText('현재 체중')).toBeTruthy();
+  expect(await screen.findByText('기록이 1개 더 쌓이면 변화 그래프를 볼 수 있어요.')).toBeTruthy();
+  expect(screen.getAllByText('4.3kg')).toHaveLength(2);
   expect(screen.queryByText(/최근 6개월/)).toBeNull();
+  expect(mockLastLineChartProps).toBeNull();
 });
 
 test('기록이 2개 이상이면 최근 6개월 변화량과 목록이 보이고, 항목을 누르면 상세로 이동한다', async () => {
@@ -78,4 +93,15 @@ test('기록이 2개 이상이면 최근 6개월 변화량과 목록이 보이�
 
   await fireEvent.press(screen.getByText('4kg'));
   expect(mockPush).toHaveBeenCalledWith(`/pets/pet-two/weight/${first.id}`);
+
+  const scale = computeWeightChartScale([4.0, 4.3]);
+  expect(mockLastLineChartProps).not.toBeNull();
+  expect(mockLastLineChartProps?.yAxisOffset).toBe(scale.yAxisOffset);
+  expect(mockLastLineChartProps?.maxValue).toBe(scale.maxValue);
+  expect(mockLastLineChartProps?.stepValue).toBe(scale.stepValue);
+  expect(mockLastLineChartProps?.noOfSections).toBe(scale.noOfSections);
+  expect(mockLastLineChartProps?.yAxisLabelTexts).toEqual(scale.yAxisLabelTexts);
+
+  const changeLabel = screen.getByText(/최근 6개월 \+0\.3kg/);
+  expect(StyleSheet.flatten(changeLabel.props.style).color).toBe(Colors.light.warningText);
 });
