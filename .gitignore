@@ -42,6 +42,14 @@ example
 /ios
 /android
 
+# 로컬 에이전트 설정·팀 상태
+.claude/settings.local.json
+.claude/agents/
+.agents/
+
+# 시뮬레이터 QA 캡처
+plan/reference/captures/
+
 # forge 루프 디렉터리 — .forge/는 기본 제외하되 영속 문서만 화이트리스트로 추적한다.
 # 휘발 상태(plan/run/STATUS/backlog/executed/done)는 제외, 영속 문서(CONTEXT/adr/retro/codebase)는 추적.
 .forge/*
