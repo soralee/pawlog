@@ -108,15 +108,17 @@ PrimaryLight   #FFF0ED
 
 ### Neutral
 
+Coral 시안 기준으로 Background는 `#FFFDFC`, Border는 `#EEEAE7`을 사용한다. Warning은 정본 기존 값 `#E9A23B`을 유지한다.
+
 ```text
-Background     #FFF9F7
+Background     #FFFDFC
 Surface        #FFFFFF
 
 TextPrimary    #292524
 TextSecondary  #78716C
 TextMuted      #A8A29E
 
-Border         #EEE8E5
+Border         #EEEAE7
 Divider        #F5F0EE
 ```
 

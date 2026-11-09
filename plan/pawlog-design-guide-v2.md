@@ -1,3 +1,7 @@
+> **폐기된 문서 — 참조 금지**
+>
+> 이 문서는 v2.0이며 `plan/design-guide.md` v3.1로 대체되었습니다. Lavender는 커밋 `52bc486`에서 브랜드 색상에서 제거되었습니다. Background·Border·Divider 값은 구버전이므로 참조하지 마세요. 정본은 `plan/design-guide.md`입니다.
+
 # Pawlog Design Guide
 
 > **Warm Coral을 중심으로 Lavender를 포인트로 더한, 밝고 따뜻한 반려동물

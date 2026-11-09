@@ -63,17 +63,19 @@ Claude Code는 작업 전 다음 문서를 읽는다.
 | Primary | `#F47C6C` |
 | Primary Pressed | `#E96F60` |
 | Primary Light | `#FFF0ED` |
-| Background | `#FFF9F7` |
+| Background | `#FFFDFC` |
 | Surface | `#FFFFFF` |
 | Text Primary | `#292524` |
 | Text Secondary | `#78716C` |
 | Text Muted | `#A8A29E` |
-| Border | `#EEE8E5` |
+| Border | `#EEEAE7` |
 | Divider | `#F5F0EE` |
 
 Spacing, Radius, Typography도 기존 `Spacing`, `Radius`, `Typography` 토큰을 우선한다. 새 Hex 값이나 새 브랜드 컬러를 추가하지 않는다. Sage/Green/Lavender를 Primary 또는 테마 선택지로 추가하지 않는다.
 
 ## 4. Shared Layout Rules
+
+- 일정·기록·내 반려동물 탭 헤더의 추가 Action은 접근성 라벨을 유지한 44pt 이상 코랄 채움 원형 `+` 버튼으로 통일한다. 이는 pet index 화면 하단 CTA 결정과 별개다.
 
 - Phone-first, iOS/Android Safe Area 대응
 - Screen horizontal padding: 20~24pt 범위에서 기존 토큰 사용
@@ -84,7 +86,7 @@ Spacing, Radius, Typography도 기존 `Spacing`, `Radius`, `Typography` 토큰�
 - Section 간격 24~32, Card 내부 padding 16
 - 아이콘은 `@expo/vector-icons/Ionicons`만 사용
 - Card는 중요한 요약에만 사용하고, Timeline/내역은 단순 리스트 우선
-- 그림자와 Gradient는 기본적으로 사용하지 않는다.
+- Card에는 design-guide §8의 은은한 그림자를 적용한다. Gradient는 기본 사용하지 않는다.
 - 숫자와 상태는 색상만으로 구분하지 않고 텍스트 Label을 함께 표시한다.
 - 버튼과 리스트에 실제 기능이 연결되어야 한다. 장식용 클릭 요소를 만들지 않는다.
 
@@ -105,7 +107,7 @@ Spacing, Radius, Typography도 기존 `Spacing`, `Radius`, `Typography` 토큰�
 
 #### Greeting
 
-- `오늘도 아이들의 건강을 챙겨볼까요?`를 보조 문구로 사용한다.
+- 1마리일 때 시안 문구 `안녕하세요, {이름} 보호자님 / 오늘도 좋은 하루예요! 🧡`를 사용한다. 다중 Pet에서는 개인화 문구의 이름 선택 규칙을 별도 적용한다.
 - 상단에 큰 별도 Screen Title을 반복하지 않는다.
 - Greeting과 첫 Section 사이 간격은 20~24pt.
 
@@ -113,7 +115,7 @@ Spacing, Radius, Typography도 기존 `Spacing`, `Radius`, `Typography` 토큰�
 
 - Section Header: `우리 아이들` + Text Action `+ 추가`
 - Pet Card는 가로 스크롤 목록.
-- Pet Avatar는 현재 40pt에서 **56~64pt**로 키워 사진/프로필을 더 잘 인식하게 한다.
+- Pet이 1마리면 시안 Pet Hero(Primary Light 영역, 96pt 원형 사진, Title Bold 이름, `나이 · 품종 >`)를 사용한다. 여러 마리면 가로 카드 목록을 유지하고 Avatar 56~64pt를 사용한다.
 - 이름은 16pt Semibold, 종/나이는 14pt Secondary.
 - 다음 Action이 있으면 한 줄의 작은 Coral Text로 표현한다.
 - 한 마리만 있어도 카드가 왼쪽에 자연스럽게 보이고, 빈 화면을 채우기 위한 가짜 카드나 추가 영역은 만들지 않는다.
@@ -138,7 +140,7 @@ Spacing, Radius, Typography도 기존 `Spacing`, `Radius`, `Typography` 토큰�
 - Label과 금액을 같은 요약 그룹으로 배치한다.
 - 전체 금액은 24~28pt Bold.
 - Pet이 여러 마리면 Pet별 금액을 보조 정보로 표시한다. 한 마리면 Breakdown을 숨긴다.
-- Chart를 추가하지 않는다.
+- 데이터 시각화 Chart는 추가하지 않는다. 우측 막대 차트 아이콘은 장식/병원비 화면 진입 아이콘으로 허용한다.
 
 #### 최근 기록
 
@@ -166,14 +168,14 @@ Spacing, Radius, Typography도 기존 `Spacing`, `Radius`, `Typography` 토큰�
 
 목표: 앞으로 해야 할 일과 완료하지 못한 지난 일정을 명확히 구분한다.
 
-- Header `일정`은 22pt Bold, 명확한 `일정 추가` Action.
+- Header `일정`은 22pt Bold, 우측 44pt 이상 코랄 채움 원형 `+` Action(접근성 라벨 `일정 추가`).
 - Filter: Pet Filter(전체/Pet별) + Type Filter(전체/접종/검진/복약).
 - `오늘의 복약`, `다가오는 일정`, `지난 일정`을 구분한다.
 - 다가오는 일정은 날짜 오름차순.
 - D-day는 예정일 기준으로 계산한다. 지난 일정은 `3일 지남`처럼 표현하고 `D+3` 같은 혼란스러운 표기를 피한다.
 - 전체 보기에서는 모든 Row에 Pet 이름/Avatar를 표시한다.
-- Upcoming은 Highlight Card를 남용하지 않고 List Row를 기본으로 한다.
-- 지난 일정은 Warning Semantic Token과 `지난 일정` Label로 구분하되, 전체 Row를 강한 주황색으로 채우지 않는다.
+- Upcoming은 시안에 맞는 카드형 Row를 사용하고, 색 아이콘 타일·일정명·날짜/반복 설명·D-day Chip을 배치한다.
+- 일정 탭에는 완료 일정을 표시하지 않는다(`screen-layout.md` §26). 미완료 지난 일정은 Warning Semantic Token과 `N일 지남`으로 표시한다. 시안의 초록 `완료` 칩 행은 의도한 차이이며, 완료 Success Chip은 기록/상세 등 완료 상태 표시에만 사용한다.
 - 빈 화면에서는 중앙 Empty State를 사용하되 Safe Area와 Tab Bar를 고려해 수직 중앙에 적절히 위치시킨다.
 - 일정 생성/완료 로직은 `pawlog-product-plan.md`와 `screen-layout.md`를 따른다. 디자인 작업 중 별도 로직을 만들지 않는다.
 
@@ -244,6 +246,8 @@ Spacing, Radius, Typography도 기존 `Spacing`, `Radius`, `Typography` 토큰�
 디자인 수정이 데이터 조회를 바꾸지 않았는지 확인한다. UI에서 실제 데이터가 있는 데도 Empty State가 표시되면 스타일로 가리지 말고 원인을 찾아 별도로 보고한다.
 
 ## 7. Implementation Sequence
+
+- 미커밋 변경 중 Home 다가오는 일정 최대 3개와 Pet Detail Avatar 112pt는 의도된 변경으로 유지한다. 탭 헤더의 텍스트 링크 변경은 되돌리고 원형 `+` 규칙을 적용한다.
 
 ### Phase 1 — Inspect and Plan
 
