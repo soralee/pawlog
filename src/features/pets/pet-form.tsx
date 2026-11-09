@@ -6,11 +6,12 @@ import { Alert, Pressable, StyleSheet } from 'react-native';
 import { z } from 'zod';
 
 import { Button } from '@/components/button';
+import { Chip } from '@/components/chip';
 import { Input } from '@/components/input';
 import { PetAvatar } from '@/components/pet-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { AvatarSize, Spacing } from '@/constants/theme';
 import type { CreatePetInput, Gender, Species } from '@/db/repositories/pet.repository';
 import { isValidDateString } from '@/utils/date';
 
@@ -20,10 +21,17 @@ const petFormSchema = z.object({
   name: z.string().min(1, '이름을 입력해주세요'),
   birthDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD 형식으로 입력해주세요')
-    .refine(isValidDateString, '실제로 존재하는 날짜를 입력해주세요'),
+    .optional()
+    .refine(
+      (val) => !val || val.trim() === '' || /^\d{4}-\d{2}-\d{2}$/.test(val.trim()),
+      'YYYY-MM-DD 형식으로 입력해주세요',
+    )
+    .refine(
+      (val) => !val || val.trim() === '' || isValidDateString(val.trim()),
+      '실제로 존재하는 날짜를 입력해주세요',
+    ),
   species: z.enum(['dog', 'cat']),
-  gender: z.enum(['male', 'female']),
+  gender: z.enum(['male', 'female']).nullable().optional(),
 });
 
 type PetFormValues = z.infer<typeof petFormSchema>;
@@ -48,17 +56,28 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
 export function PetForm({
   initialValues,
   initialPhotoUri = null,
-  submitLabel = '등록',
+  submitLabel = '등록하기',
   onSubmit,
 }: PetFormProps) {
   const { control, handleSubmit, formState, reset } = useForm<PetFormValues>({
     resolver: zodResolver(petFormSchema),
-    defaultValues: initialValues ?? { name: '', birthDate: '', species: 'dog', gender: 'male' },
+    defaultValues: initialValues ?? {
+      name: '',
+      birthDate: '',
+      species: 'dog',
+      gender: undefined,
+    },
   });
   const [photoUri, setPhotoUri] = useState<string | null>(initialPhotoUri);
 
   const submit = handleSubmit((values) => {
-    onSubmit({ ...values, photoUri });
+    onSubmit({
+      name: values.name,
+      birthDate: values.birthDate?.trim() ?? '',
+      species: values.species,
+      gender: values.gender ?? null,
+      photoUri,
+    });
     if (!initialValues) reset();
   });
 
@@ -89,7 +108,7 @@ export function PetForm({
   return (
     <ThemedView style={styles.form}>
       <Pressable accessibilityLabel="프로필 사진 선택" onPress={pickPhoto} style={styles.avatarRow}>
-        <PetAvatar photoUri={photoUri} size={80} />
+        <PetAvatar photoUri={photoUri} size={AvatarSize.hero} />
         <ThemedText type="small" themeColor="primary">
           사진 선택
         </ThemedText>
@@ -108,62 +127,65 @@ export function PetForm({
         )}
       />
 
+      <ThemedView style={styles.fieldGroup}>
+        <ThemedText type="small" themeColor="textSecondary">
+          종류
+        </ThemedText>
+        <ThemedView style={styles.optionRow}>
+          {SPECIES_OPTIONS.map((option) => (
+            <Controller
+              key={option.value}
+              control={control}
+              name="species"
+              render={({ field }) => (
+                <Chip
+                  label={option.label}
+                  selected={field.value === option.value}
+                  onPress={() => field.onChange(option.value)}
+                />
+              )}
+            />
+          ))}
+        </ThemedView>
+      </ThemedView>
+
       <Controller
         control={control}
         name="birthDate"
         render={({ field }) => (
           <Input
             label="생년월일"
+            optional
             placeholder="YYYY-MM-DD"
-            value={field.value}
+            value={field.value ?? ''}
             onChangeText={field.onChange}
             error={formState.errors.birthDate?.message}
           />
         )}
       />
 
-      <ThemedView style={styles.optionRow}>
-        {SPECIES_OPTIONS.map((option) => (
-          <Controller
-            key={option.value}
-            control={control}
-            name="species"
-            render={({ field }) => (
-              <Pressable
-                accessibilityLabel={option.label}
-                onPress={() => field.onChange(option.value)}
-                style={[
-                  styles.optionButton,
-                  field.value === option.value && styles.optionButtonSelected,
-                ]}
-              >
-                <ThemedText type="small">{option.label}</ThemedText>
-              </Pressable>
-            )}
-          />
-        ))}
-      </ThemedView>
-
-      <ThemedView style={styles.optionRow}>
-        {GENDER_OPTIONS.map((option) => (
-          <Controller
-            key={option.value}
-            control={control}
-            name="gender"
-            render={({ field }) => (
-              <Pressable
-                accessibilityLabel={option.label}
-                onPress={() => field.onChange(option.value)}
-                style={[
-                  styles.optionButton,
-                  field.value === option.value && styles.optionButtonSelected,
-                ]}
-              >
-                <ThemedText type="small">{option.label}</ThemedText>
-              </Pressable>
-            )}
-          />
-        ))}
+      <ThemedView style={styles.fieldGroup}>
+        <ThemedText type="small" themeColor="textSecondary">
+          성별 (선택)
+        </ThemedText>
+        <ThemedView style={styles.optionRow}>
+          {GENDER_OPTIONS.map((option) => (
+            <Controller
+              key={option.value}
+              control={control}
+              name="gender"
+              render={({ field }) => (
+                <Chip
+                  label={option.label}
+                  selected={field.value === option.value}
+                  onPress={() =>
+                    field.onChange(field.value === option.value ? undefined : option.value)
+                  }
+                />
+              )}
+            />
+          ))}
+        </ThemedView>
       </ThemedView>
 
       <Button onPress={submit}>{submitLabel}</Button>
@@ -177,21 +199,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   form: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
+  },
+  fieldGroup: {
+    gap: Spacing.xxs,
   },
   optionRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
-  },
-  optionButton: {
-    paddingVertical: Spacing.xxs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  optionButtonSelected: {
-    borderColor: Colors.light.primary,
-    backgroundColor: Colors.light.primaryLight,
   },
 });

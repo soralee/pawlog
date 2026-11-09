@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import type { Checkup } from '@/db/repositories/checkup.repository';
 import type { HealthRecord } from '@/db/repositories/health-record.repository';
 import type { HospitalExpense } from '@/db/repositories/hospital-expense.repository';
@@ -6,11 +7,17 @@ import type { Pet } from '@/db/repositories/pet.repository';
 import type { Vaccination } from '@/db/repositories/vaccination.repository';
 import type { WeightRecord } from '@/db/repositories/weight-record.repository';
 import { sumCurrentMonth } from '@/features/hospital-expense/monthly-total';
-import { splitMedications } from '@/features/medication/split-medications';
-import { aggregateSchedule, type ScheduleEntry } from '@/features/schedule/aggregate-schedule';
-import { daysUntil, formatDDay, todayDateString } from '@/utils/date';
+import {
+  compareMedicationTime,
+  isMedicationDueToday,
+} from '@/features/medication/split-medications';
+import {
+  aggregateSchedule,
+  getUpcomingSchedule,
+  type ScheduleEntry,
+} from '@/features/schedule/aggregate-schedule';
 
-export type RecentRecordType = 'health' | 'vaccination' | 'checkup' | 'weight';
+export type RecentRecordType = 'health' | 'vaccination' | 'checkup' | 'weight' | 'hospital-expense';
 export type RecentRecord = {
   id: string;
   petId: string;
@@ -18,21 +25,20 @@ export type RecentRecord = {
   type: RecentRecordType;
   date: string;
   title: string;
+  subtitle?: string;
 };
 
 export type TaggedScheduleEntry = ScheduleEntry & { petId: string; petName: string };
 export type TaggedMedication = { petId: string; petName: string; medication: Medication };
 export type ExpenseByPet = { petId: string; petName: string; amount: number };
 
-export type PetSummary = {
-  pet: Pet;
-  /** "오늘 복약 21:00" 또는 "D-14 예방접종" — 둘 다 없으면 null. */
-  actionLabel: string | null;
-};
+export type PetSummary = { pet: Pet };
 
 export type HomeDashboardData = {
   petSummaries: PetSummary[];
   upcomingSchedule: TaggedScheduleEntry[];
+  /** 미완료 지난 일정이 하나라도 있으면 true — 홈에서 "지난 일정은 일정 탭에서…" 안내 여부. */
+  hasOverdueSchedule: boolean;
   todayMedications: TaggedMedication[];
   monthlyExpenseTotal: number;
   monthlyExpenseByPet: ExpenseByPet[];
@@ -50,31 +56,16 @@ export type PetDashboardInput = {
 };
 
 const RECENT_RECORDS_LIMIT = 5;
-const UPCOMING_SCHEDULE_LIMIT = 5;
-
-function actionLabelFor(input: PetDashboardInput, today: string): string | null {
-  const activeToday = splitMedications(input.medications, today).active;
-  if (activeToday.length > 0) {
-    const soonest = [...activeToday].sort((a, b) => (a.time < b.time ? -1 : 1))[0];
-    return `오늘 복약 ${soonest.time}`;
-  }
-  const nextSchedule = aggregateSchedule(input.vaccinations, input.checkups)[0];
-  if (nextSchedule) {
-    return `${formatDDay(daysUntil(nextSchedule.date, today))} ${nextSchedule.title}`;
-  }
-  return null;
-}
+const UPCOMING_SCHEDULE_LIMIT = 3;
 
 export function buildHomeDashboard(
   petsData: PetDashboardInput[],
-  today: string = todayDateString(),
+  now: Date = new Date(),
 ): HomeDashboardData {
-  const petSummaries: PetSummary[] = petsData.map((input) => ({
-    pet: input.pet,
-    actionLabel: actionLabelFor(input, today),
-  }));
+  const today = format(now, 'yyyy-MM-dd');
+  const petSummaries: PetSummary[] = petsData.map((input) => ({ pet: input.pet }));
 
-  const upcomingSchedule: TaggedScheduleEntry[] = petsData
+  const allSchedule: TaggedScheduleEntry[] = petsData
     .flatMap((input) =>
       aggregateSchedule(input.vaccinations, input.checkups).map((entry) => ({
         ...entry,
@@ -82,16 +73,22 @@ export function buildHomeDashboard(
         petName: input.pet.name,
       })),
     )
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-    .slice(0, UPCOMING_SCHEDULE_LIMIT);
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const upcomingEntries = getUpcomingSchedule(allSchedule, today);
+  const upcomingSchedule = upcomingEntries.slice(0, UPCOMING_SCHEDULE_LIMIT);
+  const hasOverdueSchedule = upcomingEntries.length < allSchedule.length;
 
-  const todayMedications: TaggedMedication[] = petsData.flatMap((input) =>
-    splitMedications(input.medications, today).active.map((medication) => ({
-      petId: input.pet.id,
-      petName: input.pet.name,
-      medication,
-    })),
-  );
+  const todayMedications: TaggedMedication[] = petsData
+    .flatMap((input) =>
+      input.medications
+        .filter((medication) => isMedicationDueToday(medication, today))
+        .map((medication) => ({
+          petId: input.pet.id,
+          petName: input.pet.name,
+          medication,
+        })),
+    )
+    .sort((a, b) => compareMedicationTime(a.medication.time, b.medication.time));
 
   const monthlyExpenseByPet: ExpenseByPet[] = petsData.map((input) => ({
     petId: input.pet.id,
@@ -139,6 +136,15 @@ export function buildHomeDashboard(
         date: r.measuredAt,
         title: `체중 ${r.weightKg}kg`,
       })),
+      ...input.hospitalExpenses.map((r) => ({
+        id: r.id,
+        petId: input.pet.id,
+        petName: input.pet.name,
+        type: 'hospital-expense' as const,
+        date: r.spentAt,
+        title: r.description || '병원비',
+        subtitle: r.hospitalName ?? undefined,
+      })),
     ])
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
     .slice(0, RECENT_RECORDS_LIMIT);
@@ -146,6 +152,7 @@ export function buildHomeDashboard(
   return {
     petSummaries,
     upcomingSchedule,
+    hasOverdueSchedule,
     todayMedications,
     monthlyExpenseTotal,
     monthlyExpenseByPet,

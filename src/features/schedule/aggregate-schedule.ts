@@ -1,5 +1,6 @@
 import type { Checkup } from '@/db/repositories/checkup.repository';
 import type { Vaccination } from '@/db/repositories/vaccination.repository';
+import { todayDateString } from '@/utils/date';
 
 export type ScheduleType = 'vaccination' | 'checkup';
 
@@ -38,4 +39,21 @@ export function aggregateSchedule(
   ];
   entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   return entries;
+}
+
+/** 오늘(D-0) 이후의 일정만 남긴다 — 홈·Pet 카드·index 요약의 "다음 일정"은 지난 일정을 포함하지 않는다. */
+export function getUpcomingSchedule<T extends ScheduleEntry>(
+  entries: T[],
+  today: string = todayDateString(),
+): T[] {
+  return entries.filter((entry) => entry.date >= today);
+}
+
+/** 오늘 포함 가장 가까운 미완료 일정 1건. 없으면(지난 일정만 있어도) null이다. */
+export function getNextUpcomingSchedule(
+  vaccinations: Vaccination[],
+  checkups: Checkup[],
+  today: string = todayDateString(),
+): ScheduleEntry | null {
+  return getUpcomingSchedule(aggregateSchedule(vaccinations, checkups), today)[0] ?? null;
 }

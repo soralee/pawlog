@@ -1,7 +1,12 @@
 import type { Checkup } from '@/db/repositories/checkup.repository';
 import type { Vaccination } from '@/db/repositories/vaccination.repository';
 
-import { aggregateSchedule } from './aggregate-schedule';
+import {
+  aggregateSchedule,
+  getNextUpcomingSchedule,
+  getUpcomingSchedule,
+  type ScheduleEntry,
+} from './aggregate-schedule';
 
 function makeVaccination(overrides: Partial<Vaccination>): Vaccination {
   return {
@@ -60,4 +65,44 @@ test('이미 완료된(vaccinatedAt/checkedAt이 채워진) 기록은 일정에�
   const result = aggregateSchedule([completedVaccination], [completedCheckup]);
 
   expect(result).toEqual([]);
+});
+
+function makeEntry(id: string, date: string): ScheduleEntry {
+  return { id, type: 'vaccination', date, title: id };
+}
+
+test('getUpcomingSchedule은 어제 일정을 빼고 오늘·내일 일정만 순서대로 반환한다', () => {
+  const entries = [
+    makeEntry('yesterday', '2026-11-08'),
+    makeEntry('today', '2026-11-09'),
+    makeEntry('tomorrow', '2026-11-10'),
+  ];
+  expect(getUpcomingSchedule(entries, '2026-11-09').map((entry) => entry.id)).toEqual([
+    'today',
+    'tomorrow',
+  ]);
+});
+
+test('getUpcomingSchedule은 지난 일정만 있으면 빈 배열이다', () => {
+  expect(getUpcomingSchedule([makeEntry('yesterday', '2026-11-08')], '2026-11-09')).toEqual([]);
+});
+
+test('getNextUpcomingSchedule은 지난 미완료 일정을 건너뛰고 오늘 포함 가장 가까운 일정을 반환한다', () => {
+  const vaccinations = [
+    makeVaccination({ id: 'v-past', nextDueAt: '2026-11-04' }),
+    makeVaccination({ id: 'v-later', nextDueAt: '2026-11-20' }),
+  ];
+  const checkups = [makeCheckup({ id: 'c-today', nextDueAt: '2026-11-09' })];
+  expect(getNextUpcomingSchedule(vaccinations, checkups, '2026-11-09')).toEqual({
+    id: 'c-today',
+    type: 'checkup',
+    date: '2026-11-09',
+    title: '건강검진',
+  });
+});
+
+test('getNextUpcomingSchedule은 지난 일정만 있거나 일정이 없으면 null이다', () => {
+  const vaccinations = [makeVaccination({ nextDueAt: '2026-11-08' })];
+  expect(getNextUpcomingSchedule(vaccinations, [], '2026-11-09')).toBeNull();
+  expect(getNextUpcomingSchedule([], [], '2026-11-09')).toBeNull();
 });
