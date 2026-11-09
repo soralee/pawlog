@@ -120,5 +120,9 @@ export function createReminderRepository(db: ReminderDb) {
     await db.runAsync('DELETE FROM reminders WHERE id = ?', [id]);
   }
 
-  return { create, getBySource, listByPet, updateNotificationId, remove };
+  async function removeByPet(petId: string): Promise<void> {
+    await db.runAsync('DELETE FROM reminders WHERE pet_id = ?', [petId]);
+  }
+
+  return { create, getBySource, listByPet, updateNotificationId, remove, removeByPet };
 }

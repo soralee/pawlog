@@ -8,7 +8,7 @@ export type Pet = {
   name: string;
   birthDate: string; // ISO 날짜 (YYYY-MM-DD)
   species: Species;
-  gender: Gender;
+  gender: Gender | null;
   photoUri: string | null;
   createdAt: string;
   updatedAt: string;
@@ -18,7 +18,7 @@ export type CreatePetInput = {
   name: string;
   birthDate: string;
   species: Species;
-  gender: Gender;
+  gender: Gender | null;
   photoUri?: string | null;
 };
 
@@ -30,7 +30,7 @@ type PetRow = {
   name: string;
   birth_date: string;
   species: Species;
-  gender: Gender;
+  gender: Gender | '';
   photo_uri: string | null;
   created_at: string;
   updated_at: string;
@@ -42,7 +42,7 @@ function toPet(row: PetRow): Pet {
     name: row.name,
     birthDate: row.birth_date,
     species: row.species,
-    gender: row.gender,
+    gender: row.gender || null,
     photoUri: row.photo_uri,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -70,7 +70,7 @@ export function createPetRepository(db: PetDb) {
         pet.name,
         pet.birthDate,
         pet.species,
-        pet.gender,
+        pet.gender ?? '',
         pet.photoUri,
         pet.createdAt,
         pet.updatedAt,
@@ -99,7 +99,7 @@ export function createPetRepository(db: PetDb) {
         updated.name,
         updated.birthDate,
         updated.species,
-        updated.gender,
+        updated.gender ?? '',
         updated.photoUri,
         updated.updatedAt,
         id,

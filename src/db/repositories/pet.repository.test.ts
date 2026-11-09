@@ -21,6 +21,47 @@ test('등록 후 조회하면 같은 반려동물이 나온다', async () => {
   expect(found).toEqual(created);
 });
 
+test('미입력 성별은 빈 문자열로 저장하고 null로 조회한다', async () => {
+  const db = createFakeSqliteDatabase();
+  const originalRunAsync = db.runAsync;
+  let insertedGender: unknown;
+  db.runAsync = async (sql, params = []) => {
+    if (sql.startsWith('INSERT INTO pets')) insertedGender = params[4];
+    return originalRunAsync(sql, params);
+  };
+  const repo = createPetRepository(db as unknown as PetDb);
+
+  const created = await repo.createPet({
+    name: '보리',
+    birthDate: '',
+    species: 'dog',
+    gender: null,
+  });
+
+  expect(insertedGender).toBe('');
+  expect(created.gender).toBeNull();
+  expect(await repo.getPet(created.id)).toMatchObject({ gender: null });
+});
+
+test('기존 male/female 성별은 저장·조회 시 그대로 유지한다', async () => {
+  const repo = setup();
+  const male = await repo.createPet({
+    name: '보리',
+    birthDate: '2018-06-15',
+    species: 'dog',
+    gender: 'male',
+  });
+  const female = await repo.createPet({
+    name: '나비',
+    birthDate: '2020-01-01',
+    species: 'cat',
+    gender: 'female',
+  });
+
+  expect((await repo.getPet(male.id))?.gender).toBe('male');
+  expect((await repo.getPet(female.id))?.gender).toBe('female');
+});
+
 test('존재하지 않는 id를 조회하면 null', async () => {
   const repo = setup();
   expect(await repo.getPet('없는-id')).toBeNull();

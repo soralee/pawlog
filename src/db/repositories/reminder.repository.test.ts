@@ -51,6 +51,27 @@ test('petId로 목록 조회하면 예정 시각순으로 나온다', async () =
   expect(list.map((r) => r.sourceId)).toEqual(['med-1', 'med-2']);
 });
 
+test('removeByPet은 해당 펫의 알림만 전부 지우고 다른 펫 알림은 남긴다', async () => {
+  const repo = setup();
+  await repo.create({
+    petId: 'pet-1',
+    sourceType: 'medication',
+    sourceId: 'med-1',
+    scheduledAt: '2026-09-16T21:00:00.000Z',
+  });
+  await repo.create({
+    petId: 'pet-2',
+    sourceType: 'checkup',
+    sourceId: 'checkup-1',
+    scheduledAt: '2026-09-17T09:00:00.000Z',
+  });
+
+  await repo.removeByPet('pet-1');
+
+  expect(await repo.listByPet('pet-1')).toEqual([]);
+  expect(await repo.listByPet('pet-2')).toHaveLength(1);
+});
+
 test('notificationId를 갱신할 수 있고(재예약), 삭제(취소)도 된다', async () => {
   const repo = setup();
   const reminder = await repo.create({
