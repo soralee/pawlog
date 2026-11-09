@@ -5,19 +5,25 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AddCircleButton } from '@/components/add-circle-button';
 import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { PetAvatar } from '@/components/pet-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { AvatarSize, Colors, Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
 import { createPetRepository, type Pet } from '@/db/repositories/pet.repository';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
-import { aggregateSchedule } from '@/features/schedule/aggregate-schedule';
-import { daysUntil, formatAge, formatDDay } from '@/utils/date';
+import { aggregateSchedule, getNextUpcomingSchedule } from '@/features/schedule/aggregate-schedule';
+import { daysUntil, formatAgeFromDateString, formatDDay } from '@/utils/date';
 
-type PetCardData = { pet: Pet; nextScheduleLabel: string | null };
+type PetCardData = {
+  pet: Pet;
+  nextScheduleLabel: string | null;
+  hasNextSchedule: boolean;
+  hasOverdueSchedule: boolean;
+};
 
 export default function PetsScreen() {
   const db = useSQLiteContext();
@@ -33,11 +39,18 @@ export default function PetsScreen() {
           createVaccinationRepository(db).listByPet(pet.id),
           createCheckupRepository(db).listByPet(pet.id),
         ]);
-        const next = aggregateSchedule(vaccinations, checkups)[0];
-        const nextScheduleLabel = next
-          ? `다음 일정 · ${next.title} ${formatDDay(daysUntil(next.date))}`
-          : null;
-        return { pet, nextScheduleLabel };
+        const allEntries = aggregateSchedule(vaccinations, checkups);
+        const next = getNextUpcomingSchedule(vaccinations, checkups);
+        const remaining = next ? daysUntil(next.date) : null;
+        const hasNextSchedule = Boolean(next && remaining !== null);
+        const hasOverdueSchedule = !hasNextSchedule && allEntries.length > 0;
+        const nextScheduleLabel =
+          next && remaining !== null
+            ? `다음 일정 · ${next.title} ${formatDDay(remaining)}`
+            : hasOverdueSchedule
+              ? '다가오는 일정 없음'
+              : null;
+        return { pet, nextScheduleLabel, hasNextSchedule, hasOverdueSchedule };
       }),
     );
     setCards(withSchedule);
@@ -55,13 +68,15 @@ export default function PetsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.header}>
           <ThemedText type="title">내 반려동물</ThemedText>
-          <Pressable accessibilityLabel="반려동물 추가" onPress={() => router.push('/pets/new')}>
-            <Ionicons name="add" size={24} color={Colors.light.primary} />
-          </Pressable>
+          <AddCircleButton
+            accessibilityLabel="반려동물 추가"
+            onPress={() => router.push('/pets/new')}
+          />
         </ThemedView>
 
         {cards && cards.length === 0 && (
           <EmptyState
+            icon="paw-outline"
             title="등록된 반려동물이 없어요."
             description="첫 반려동물을 등록해 보세요."
             ctaLabel="반려동물 등록하기"
@@ -71,29 +86,42 @@ export default function PetsScreen() {
 
         {cards && cards.length > 0 && (
           <ScrollView contentContainerStyle={styles.list}>
-            {cards.map(({ pet, nextScheduleLabel }) => (
-              <Pressable
-                key={pet.id}
-                accessibilityLabel={pet.name}
-                onPress={() => router.push(`/pets/${pet.id}`)}
-              >
-                <Card style={[styles.card, styles.cardRow]}>
-                  <PetAvatar photoUri={pet.photoUri} size={56} />
-                  <ThemedView style={styles.cardText}>
-                    <ThemedText type="heading">{pet.name}</ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {formatAge(new Date(pet.birthDate))} ·{' '}
-                      {pet.species === 'dog' ? '강아지' : '고양이'}
-                    </ThemedText>
-                    {nextScheduleLabel ? (
-                      <ThemedText type="small" themeColor="primary">
-                        {nextScheduleLabel}
+            {cards.map(({ pet, nextScheduleLabel, hasNextSchedule, hasOverdueSchedule }) => {
+              const ageText = formatAgeFromDateString(pet.birthDate);
+              return (
+                <Pressable
+                  key={pet.id}
+                  accessibilityLabel={pet.name}
+                  onPress={() => router.push(`/pets/${pet.id}`)}
+                >
+                  <Card style={[styles.card, styles.cardRow]}>
+                    <PetAvatar photoUri={pet.photoUri} size={AvatarSize.lg} />
+                    <ThemedView type="surface" style={styles.cardText}>
+                      <ThemedText type="heading">{pet.name}</ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {[ageText || null, pet.species === 'dog' ? '강아지' : '고양이']
+                          .filter(Boolean)
+                          .join(' · ')}
                       </ThemedText>
-                    ) : null}
-                  </ThemedView>
-                </Card>
-              </Pressable>
-            ))}
+                      {nextScheduleLabel ? (
+                        <ThemedText
+                          type="small"
+                          themeColor={hasNextSchedule ? 'primary' : 'textSecondary'}
+                        >
+                          {nextScheduleLabel}
+                        </ThemedText>
+                      ) : null}
+                      {hasOverdueSchedule ? (
+                        <ThemedText type="small" themeColor="textSecondary">
+                          지난 일정은 일정 탭에서 확인할 수 있어요.
+                        </ThemedText>
+                      ) : null}
+                    </ThemedView>
+                    <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+                  </Card>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -103,7 +131,7 @@ export default function PetsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  safeArea: { flex: 1, paddingHorizontal: Spacing.screen, gap: Spacing.md },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

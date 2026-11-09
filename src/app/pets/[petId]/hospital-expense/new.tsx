@@ -2,12 +2,12 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { FormPetContext } from '@/components/form-pet-context';
+import { FormScrollContainer } from '@/components/form-scroll-container';
 import { Input } from '@/components/input';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
 import { createHospitalExpenseRepository } from '@/db/repositories/hospital-expense.repository';
 import { isValidDateString, todayDateString } from '@/utils/date';
 
@@ -49,7 +49,8 @@ export default function NewHospitalExpenseScreen() {
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ title: '병원비 등록' }} />
-      <SafeAreaView style={styles.safeArea}>
+      <FormScrollContainer>
+        <FormPetContext petId={petId} />
         <Input
           label="날짜"
           value={spentAt}
@@ -73,12 +74,11 @@ export default function NewHospitalExpenseScreen() {
         <Input label="진료/지출 내용" optional value={description} onChangeText={setDescription} />
         <Input label="메모" optional value={memo} onChangeText={setMemo} multiline />
         <Button onPress={handleSave}>저장하기</Button>
-      </SafeAreaView>
+      </FormScrollContainer>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
 });

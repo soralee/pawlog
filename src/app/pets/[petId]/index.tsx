@@ -1,16 +1,17 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { FormScrollContainer } from '@/components/form-scroll-container';
 import { ListItem } from '@/components/list-item';
 import { PetAvatar } from '@/components/pet-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
 import { createHealthRecordRepository } from '@/db/repositories/health-record.repository';
 import { createHospitalExpenseRepository } from '@/db/repositories/hospital-expense.repository';
@@ -20,10 +21,12 @@ import {
   type CreatePetInput,
   type Pet,
 } from '@/db/repositories/pet.repository';
+import { createReminderRepository } from '@/db/repositories/reminder.repository';
 import { createVaccinationRepository } from '@/db/repositories/vaccination.repository';
 import { createWeightRecordRepository } from '@/db/repositories/weight-record.repository';
 import { PetForm } from '@/features/pets/pet-form';
-import { formatAge } from '@/utils/date';
+import { formatAgeFromDateString } from '@/utils/date';
+import { withObjectParticle } from '@/utils/korean';
 
 export default function PetDetailScreen() {
   const { petId } = useLocalSearchParams<{ petId: string }>();
@@ -57,11 +60,15 @@ export default function PetDetailScreen() {
       createWeightRecordRepository(db).removeByPet(petId),
       createMedicationRepository(db).removeByPet(petId),
       createHospitalExpenseRepository(db).removeByPet(petId),
+      createReminderRepository(db).removeByPet(petId),
     ]);
     await createPetRepository(db).remove(petId);
     setConfirmVisible(false);
     router.back();
   }
+
+  const ageText = pet ? formatAgeFromDateString(pet.birthDate) : '';
+  const genderText = pet?.gender === 'male' ? '남아' : pet?.gender === 'female' ? '여아' : null;
 
   return (
     <ThemedView style={styles.container}>
@@ -78,14 +85,14 @@ export default function PetDetailScreen() {
             ) : null,
         }}
       />
-      <SafeAreaView style={styles.safeArea}>
+      <FormScrollContainer contentContainerStyle={styles.content}>
         {pet && editing && (
           <PetForm
             initialValues={{
               name: pet.name,
               birthDate: pet.birthDate,
               species: pet.species,
-              gender: pet.gender,
+              gender: pet.gender ?? undefined,
             }}
             initialPhotoUri={pet.photoUri}
             submitLabel="저장하기"
@@ -95,37 +102,97 @@ export default function PetDetailScreen() {
         {pet && !editing && (
           <>
             <ThemedView style={styles.profile}>
-              <PetAvatar photoUri={pet.photoUri} size={96} />
+              <PetAvatar photoUri={pet.photoUri} size={112} />
               <ThemedText type="display">{pet.name}</ThemedText>
               <ThemedText type="default" themeColor="textSecondary">
-                {formatAge(new Date(pet.birthDate))} · {pet.species === 'dog' ? '강아지' : '고양이'}{' '}
-                · {pet.gender === 'male' ? '남아' : '여아'}
+                {[ageText || null, pet.species === 'dog' ? '강아지' : '고양이', genderText]
+                  .filter(Boolean)
+                  .join(' · ')}
               </ThemedText>
             </ThemedView>
 
             <ThemedText type="heading">건강 관리</ThemedText>
             <ListItem
               title="건강 기록"
+              leading={
+                <Ionicons
+                  name="document-text-outline"
+                  size={22}
+                  color={Colors.light.textSecondary}
+                />
+              }
+              trailing={
+                <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+              }
               onPress={() => router.push(`/pets/${petId}/health-record`)}
+              showDivider
             />
-            <ListItem title="예방접종" onPress={() => router.push(`/pets/${petId}/vaccination`)} />
-            <ListItem title="건강검진" onPress={() => router.push(`/pets/${petId}/checkup`)} />
-            <ListItem title="체중" onPress={() => router.push(`/pets/${petId}/weight`)} />
-            <ListItem title="복약" onPress={() => router.push(`/pets/${petId}/medication`)} />
+            <ListItem
+              title="예방접종"
+              leading={
+                <Ionicons name="medkit-outline" size={22} color={Colors.light.textSecondary} />
+              }
+              trailing={
+                <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+              }
+              onPress={() => router.push(`/pets/${petId}/vaccination`)}
+              showDivider
+            />
+            <ListItem
+              title="건강검진"
+              leading={
+                <Ionicons name="heart-outline" size={22} color={Colors.light.textSecondary} />
+              }
+              trailing={
+                <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+              }
+              onPress={() => router.push(`/pets/${petId}/checkup`)}
+              showDivider
+            />
+            <ListItem
+              title="체중"
+              leading={
+                <Ionicons name="scale-outline" size={22} color={Colors.light.textSecondary} />
+              }
+              trailing={
+                <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+              }
+              onPress={() => router.push(`/pets/${petId}/weight`)}
+              showDivider
+            />
+            <ListItem
+              title="복약"
+              leading={
+                <Ionicons name="medical-outline" size={22} color={Colors.light.textSecondary} />
+              }
+              trailing={
+                <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+              }
+              onPress={() => router.push(`/pets/${petId}/medication`)}
+              showDivider
+            />
             <ListItem
               title="병원비"
+              leading={
+                <Ionicons name="wallet-outline" size={22} color={Colors.light.textSecondary} />
+              }
+              trailing={
+                <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
+              }
               onPress={() => router.push(`/pets/${petId}/hospital-expense`)}
             />
 
-            <Button variant="destructive" onPress={() => setConfirmVisible(true)}>
-              반려동물 삭제
-            </Button>
+            <ThemedView style={styles.deleteSection}>
+              <Button variant="destructive" onPress={() => setConfirmVisible(true)}>
+                반려동물 삭제
+              </Button>
+            </ThemedView>
           </>
         )}
-      </SafeAreaView>
+      </FormScrollContainer>
       <ConfirmDialog
         visible={confirmVisible}
-        title={`${pet?.name ?? ''}을(를) 삭제할까요?`}
+        title={`${withObjectParticle(pet?.name ?? '')} 삭제할까요?`}
         description="연결된 모든 건강 기록·일정·병원비 기록이 함께 삭제되며 복구할 수 없어요."
         onConfirm={handleDelete}
         onCancel={() => setConfirmVisible(false)}
@@ -136,6 +203,7 @@ export default function PetDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.sm },
+  content: { gap: Spacing.sm },
   profile: { alignItems: 'center', gap: Spacing.xxs, marginBottom: Spacing.sm },
+  deleteSection: { marginTop: Spacing.lg },
 });

@@ -2,26 +2,27 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { EmptyState } from '@/components/empty-state';
+import { FormScrollContainer } from '@/components/form-scroll-container';
 import { Input } from '@/components/input';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import {
   createWeightRecordRepository,
   type WeightRecord,
 } from '@/db/repositories/weight-record.repository';
-import { isValidDateString } from '@/utils/date';
+import { formatDateForDisplay, isValidDateString } from '@/utils/date';
 
 export default function WeightRecordDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const router = useRouter();
 
-  const [record, setRecord] = useState<WeightRecord | null>(null);
+  const [record, setRecord] = useState<WeightRecord | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
   const [measuredAt, setMeasuredAt] = useState('');
   const [measuredAtError, setMeasuredAtError] = useState('');
@@ -88,7 +89,8 @@ export default function WeightRecordDetailScreen() {
             ) : null,
         }}
       />
-      <SafeAreaView style={styles.safeArea}>
+      <FormScrollContainer>
+        {record === null ? <EmptyState title="기록을 찾을 수 없어요" /> : null}
         {record && editing && (
           <>
             <Input
@@ -116,15 +118,35 @@ export default function WeightRecordDetailScreen() {
         )}
         {record && !editing && (
           <>
-            <ThemedText type="heading">{record.weightKg}kg</ThemedText>
-            <ThemedText type="default">{record.measuredAt}</ThemedText>
-            {record.memo ? <ThemedText type="default">{record.memo}</ThemedText> : null}
+            <ThemedText type="small" themeColor="textSecondary">
+              {formatDateForDisplay(record.measuredAt, 'schedule') || '날짜를 설정해 주세요.'}
+            </ThemedText>
+            <ThemedText type="title">{record.weightKg}kg</ThemedText>
+            {record.memo ? (
+              <ThemedView style={styles.fieldGroup}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  메모
+                </ThemedText>
+                <ThemedText type="default">{record.memo}</ThemedText>
+              </ThemedView>
+            ) : null}
           </>
         )}
-        <Button variant="destructive" onPress={() => setConfirmVisible(true)}>
-          기록 삭제
-        </Button>
-      </SafeAreaView>
+        {record ? (
+          <ThemedView style={styles.deleteSection}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="기록 삭제"
+              onPress={() => setConfirmVisible(true)}
+              style={styles.deleteButton}
+            >
+              <ThemedText type="smallBold" themeColor="danger">
+                기록 삭제
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+        ) : null}
+      </FormScrollContainer>
       <ConfirmDialog
         visible={confirmVisible}
         title="이 기록을 삭제할까요?"
@@ -138,5 +160,19 @@ export default function WeightRecordDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
+  fieldGroup: {
+    gap: Spacing.xxs,
+  },
+  deleteSection: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.divider,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    alignItems: 'center',
+  },
+  deleteButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+  },
 });

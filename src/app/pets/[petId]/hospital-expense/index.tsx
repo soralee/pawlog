@@ -2,19 +2,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BottomActionBar } from '@/components/bottom-action-bar';
+import { Button } from '@/components/button';
+import { Card } from '@/components/card';
 import { EmptyState } from '@/components/empty-state';
 import { ListItem } from '@/components/list-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import {
   createHospitalExpenseRepository,
   type HospitalExpense,
 } from '@/db/repositories/hospital-expense.repository';
 import { sumCurrentMonth } from '@/features/hospital-expense/monthly-total';
+import { formatDateForDisplay, todayDateString } from '@/utils/date';
 
 export default function HospitalExpenseScreen() {
   const db = useSQLiteContext();
@@ -35,25 +39,15 @@ export default function HospitalExpenseScreen() {
   );
 
   const monthlyTotal = useMemo(() => sumCurrentMonth(expenses), [expenses]);
+  const currentMonthLabel = `${Number(todayDateString().split('-')[1])}월`;
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: '병원비',
-          headerRight: () => (
-            <Pressable
-              accessibilityLabel="병원비 추가"
-              onPress={() => router.push(`/pets/${petId}/hospital-expense/new`)}
-            >
-              <Ionicons name="add" size={24} color={Colors.light.primary} />
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={{ title: '병원비' }} />
       <SafeAreaView style={styles.safeArea}>
         {expenses.length === 0 ? (
           <EmptyState
+            icon="wallet-outline"
             title="등록된 병원비가 없어요."
             description="병원 방문 비용을 기록해 보세요."
             ctaLabel="병원비 추가하기"
@@ -61,42 +55,56 @@ export default function HospitalExpenseScreen() {
           />
         ) : (
           <>
-            <ThemedView style={styles.summaryCard}>
+            <Card style={styles.summaryCard}>
               <ThemedText type="small" themeColor="textSecondary">
-                이번 달
+                이번 달 병원비
               </ThemedText>
-              <ThemedText type="heading">{monthlyTotal.toLocaleString('ko-KR')}원</ThemedText>
-            </ThemedView>
+              <ThemedText type="display">{monthlyTotal.toLocaleString('ko-KR')}원</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {currentMonthLabel}
+              </ThemedText>
+            </Card>
 
-            <ScrollView>
-              {expenses.map((expense) => (
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+              {expenses.map((expense, i) => (
                 <ListItem
                   key={expense.id}
-                  title={`${expense.amount.toLocaleString('ko-KR')}원`}
-                  subtitle={[expense.spentAt, expense.hospitalName, expense.description]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  leadingText={formatDateForDisplay(expense.spentAt, 'list')}
+                  title={expense.hospitalName || expense.description || '병원비'}
+                  subtitle={
+                    expense.hospitalName && expense.description ? expense.description : undefined
+                  }
+                  trailingText={`${expense.amount.toLocaleString('ko-KR')}원`}
                   trailing={
                     <Ionicons name="chevron-forward" size={20} color={Colors.light.textMuted} />
                   }
                   onPress={() => router.push(`/pets/${petId}/hospital-expense/${expense.id}`)}
+                  showDivider={i < expenses.length - 1}
                 />
               ))}
             </ScrollView>
           </>
         )}
       </SafeAreaView>
+      <BottomActionBar>
+        <Button
+          accessibilityLabel="병원비 추가"
+          onPress={() => router.push(`/pets/${petId}/hospital-expense/new`)}
+        >
+          병원비 기록
+        </Button>
+      </BottomActionBar>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, paddingHorizontal: Spacing.lg, gap: Spacing.md },
+  safeArea: { flex: 1, paddingHorizontal: Spacing.screen, gap: Spacing.md },
+  scrollContent: {
+    paddingBottom: Spacing.lg,
+  },
   summaryCard: {
-    backgroundColor: Colors.light.primaryLight,
-    borderRadius: Radius.largeCard,
-    padding: Spacing.md,
     gap: Spacing.xxs,
   },
 });

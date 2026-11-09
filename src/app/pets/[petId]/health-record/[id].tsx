@@ -2,26 +2,27 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { EmptyState } from '@/components/empty-state';
+import { FormScrollContainer } from '@/components/form-scroll-container';
 import { Input } from '@/components/input';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import {
   createHealthRecordRepository,
   type HealthRecord,
 } from '@/db/repositories/health-record.repository';
-import { isValidDateString } from '@/utils/date';
+import { formatDateForDisplay, isValidDateString } from '@/utils/date';
 
 export default function HealthRecordDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const router = useRouter();
 
-  const [record, setRecord] = useState<HealthRecord | null>(null);
+  const [record, setRecord] = useState<HealthRecord | null | undefined>(undefined);
   const [editing, setEditing] = useState(false);
   const [recordedAt, setRecordedAt] = useState('');
   const [recordedAtError, setRecordedAtError] = useState('');
@@ -81,7 +82,8 @@ export default function HealthRecordDetailScreen() {
             ) : null,
         }}
       />
-      <SafeAreaView style={styles.safeArea}>
+      <FormScrollContainer>
+        {record === null ? <EmptyState title="기록을 찾을 수 없어요" /> : null}
         {record && editing && (
           <>
             <Input
@@ -108,14 +110,33 @@ export default function HealthRecordDetailScreen() {
         )}
         {record && !editing && (
           <>
-            <ThemedText type="heading">{record.recordedAt}</ThemedText>
-            <ThemedText type="default">{record.note}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {formatDateForDisplay(record.recordedAt, 'schedule') || '날짜를 설정해 주세요.'}
+            </ThemedText>
+            <ThemedText type="title">건강 기록</ThemedText>
+            <ThemedView style={styles.fieldGroup}>
+              <ThemedText type="small" themeColor="textSecondary">
+                메모
+              </ThemedText>
+              <ThemedText type="default">{record.note}</ThemedText>
+            </ThemedView>
           </>
         )}
-        <Button variant="destructive" onPress={() => setConfirmVisible(true)}>
-          기록 삭제
-        </Button>
-      </SafeAreaView>
+        {record ? (
+          <ThemedView style={styles.deleteSection}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="기록 삭제"
+              onPress={() => setConfirmVisible(true)}
+              style={styles.deleteButton}
+            >
+              <ThemedText type="smallBold" themeColor="danger">
+                기록 삭제
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+        ) : null}
+      </FormScrollContainer>
       <ConfirmDialog
         visible={confirmVisible}
         title="이 기록을 삭제할까요?"
@@ -129,5 +150,19 @@ export default function HealthRecordDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
+  fieldGroup: {
+    gap: Spacing.xxs,
+  },
+  deleteSection: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.divider,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.sm,
+    alignItems: 'center',
+  },
+  deleteButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+  },
 });

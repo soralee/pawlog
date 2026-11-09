@@ -2,12 +2,12 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { FormPetContext } from '@/components/form-pet-context';
+import { FormScrollContainer } from '@/components/form-scroll-container';
 import { Input } from '@/components/input';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
 import { createCheckupRepository } from '@/db/repositories/checkup.repository';
 import { isValidDateString } from '@/utils/date';
 
@@ -43,7 +43,8 @@ export default function NewCheckupScheduleScreen() {
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ title: '건강검진 일정' }} />
-      <SafeAreaView style={styles.safeArea}>
+      <FormScrollContainer>
+        <FormPetContext petId={petId} />
         <Input
           label="검진 종류"
           value={checkupType}
@@ -63,12 +64,11 @@ export default function NewCheckupScheduleScreen() {
           error={nextDueAtError}
         />
         <Button onPress={handleSave}>저장하기</Button>
-      </SafeAreaView>
+      </FormScrollContainer>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safeArea: { flex: 1, padding: Spacing.lg, gap: Spacing.md },
 });
